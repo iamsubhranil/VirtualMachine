@@ -21,7 +21,7 @@ class Processor(Cmd):
 
     memsize = 16
     memset = {}
-    regset = {"R1": "Null", "R2": "Null", "R3": "Null", "R4": "Null"}
+    regset = {"R1": "Null", "R2": "Null", "R3": "Null", "R4": "Null", "AC": "Null"}
 
 
     def do_print(self, args):
@@ -127,6 +127,24 @@ Error will be raised if no such variable exists in memory.
             except NotInMemoryError:
                 print("[ERROR] No such variable exists in memory!")
 
+    
+    def do_incr(self, args):
+        """
+Increments the value of a variable by unity.
+Syntax :
+        incr [destination]
+[destination] can be either a variable of a register address
+        """
+        if len(args) == 0:
+            print("[ERROR] Wrong syntax for `incr`")
+        else:
+            try:
+                self.perform_incr(args)
+            except ValueError:
+                print("[ERROR] Value stored in %s is not a number!" % args)
+            except NotInMemoryError:
+                print("[ERROR] No such variable exists in memory!")
+
 
     def do_quit(self, args):
         """Quits the system"""
@@ -148,9 +166,9 @@ Error will be raised if no such variable exists in memory.
 
     def perform_print(self, args):
         if args in self.regset:
-            print("[INFO] Value of "+args+" is "+self.regset[args])
+            print("[INFO] Value of register "+args+" is "+str(self.regset[args]))
         elif args in self.memset:
-            print("[INFO] Value of variable "+args+" is "+self.memset[args])
+            print("[INFO] Value of variable "+args+" is "+str(self.memset[args]))
         else:
             print("[ERROR] "+args+" is not a variable or register!")
 
@@ -193,6 +211,18 @@ Error will be raised if no such variable exists in memory.
             del self.memset[dest]
         else:
             raise NotInMemoryError
+
+
+    def perform_incr(self, dest):
+        if dest in self.memset:
+            self.perform_load(dest, "AC")
+            self.perform_incr("AC")
+            self.perform_store("AC", dest)
+        elif dest in self.regset:
+            self.regset[dest] = float(self.regset[dest]) + 1
+        else:
+            raise NotInMemoryError
+
 
 console = Processor()
 console.prompt = " > "
