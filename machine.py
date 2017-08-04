@@ -55,6 +55,11 @@ class Processor(Cmd):
             # print("Pushing to stack %s" % str(args))
         self.stackpointer += 1
 
+
+    def default(self, line):
+        print("[ERROR] Command not recognised! See `help`.")
+        return 0
+
     def do_help(self, args):
         """
 Shows help on the command usage.
