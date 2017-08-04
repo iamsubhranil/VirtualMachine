@@ -38,7 +38,6 @@ class Processor(Cmd):
     program_stack = []
     condition_stack = []
     stackpointer = 0
-    inwhile = 0
     defined_conds = ["lt", "gt", "lte", "gte", "eq", "neq"]
 
 
@@ -377,7 +376,6 @@ This function does not take any arguments.
             else:
                 float(dest)
             self.condition_stack.insert(0, [self.stackpointer, cond, source, dest])
-            self.inwhile += 1
 
 
     def getval(self, arg):
@@ -390,7 +388,7 @@ This function does not take any arguments.
 
 
     def perform_endwhile(self, args):
-        if self.inwhile == 0:
+        if len(self.condition_stack) == 0:
             raise NotInWhileError
         else:
             self.push_ps([self.do_endwhile, args])
@@ -408,8 +406,6 @@ This function does not take any arguments.
             or (cond == "gte" and getval(source) >= getval(dest)):
                 self.stackpointer = lastwhile+1
             else:
-                # self.stackpointer += 1
-                self.inwhile -= 1
                 self.condition_stack.pop(0)
                 # print(self.condition_stack[0])
 
