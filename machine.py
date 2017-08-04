@@ -56,6 +56,8 @@ Syntax :
                     self.perform_load(address[0], address[1])
                 except IllegalRegisterError:
                     print("[ERROR] Bad register number %s " % address[1])
+                except NotInMemoryError:
+                    print("[ERROR] No such variable in memory")
 
 
     def do_store(self, args):
@@ -155,14 +157,12 @@ Error will be raised if no such variable exists in memory.
 
     def perform_load(self, source, dest):
         if dest in self.regset:
-            try:
-                self.checkName(source)
-                if source in self.memset:
-                    self.regset[dest] = self.memset[source]
-                else:
-                    self.regset[dest] = source
-            except ValueError:
-                self.regset[dest] = source
+            if source in self.regset:
+                self.regset[dest] = self.regset[source]
+            elif source in self.memset:
+                self.regset[dest] = self.memset[source]
+            else:
+                raise NotInMemoryError
         else: 
             raise IllegalRegisterError
 
