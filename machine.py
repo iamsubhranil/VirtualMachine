@@ -61,6 +61,13 @@ class Processor(Cmd):
         print("[ERROR] Command not recognised! See `help`.")
         return 0
 
+    
+    def cexec(self):
+        if len(self.condition_stack) == 0:
+            return True
+        else:
+            return self.evalcond(self.condition_stack[0][1], self.condition_stack[0][2], self.condition_stack[0][3])
+
 
     def do_help(self, args):
         """
@@ -121,7 +128,8 @@ Syntax :
             print("[ERROR]Wrong syntax for function 'print' : %s!" % args)
         else:
             try:
-                self.perform_print(args)
+                if self.cexec():
+                    self.perform_print(args)
                 self.push_ps([self.do_print, args])
             except NotInMemoryError:
                 print("[ERROR] No such variable in memory")
@@ -140,7 +148,8 @@ Syntax :
             print("[ERROR] Unable to access priviledged registers!")
         else:
             try:
-                self.perform_load(args[0], args[1])
+                if self.cexec():
+                    self.perform_load(args[0], args[1])
                 self.push_ps([self.do_load, args])
             except IllegalRegisterError:
                 print("[ERROR] Bad register number %s " % args[1])
@@ -159,7 +168,8 @@ Syntax :
 If no such variable exists in memory, a new one will be created implicitly
         """
         try:
-            self.perform_store(args[0], args[1])
+            if self.cexec():
+                self.perform_store(args[0], args[1])
             self.push_ps([self.do_store, args])
         except IllegalRegisterError:
             print("[ERROR] Bad register number %s!" % args[0])
@@ -214,7 +224,8 @@ Syntax :
 [destination] can be either a variable of a register address
         """
         try:
-            self.perform_incr(args)
+            if self.cexec():
+                self.perform_incr(args)
             self.push_ps([self.do_incr, args])
         except ValueError:
             print("[ERROR] Value stored in %s is not a number!" % args)
@@ -231,7 +242,8 @@ Syntax :
 [destination] can be either a variable of a register address
         """
         try:
-            self.perform_decr(args)
+            if self.cexec():
+                self.perform_decr(args)
             self.push_ps([self.do_decr, args])
         except ValueError:
             print("[ERROR] Value stored in %s is not a number!" % args)
@@ -258,7 +270,6 @@ Each `while` statement must be completed with a `endwhile` statement. Only when 
         """
         try:
             self.perform_while(args[0], args[1], args[2])
-            # self.push_ps([self.do_while, args])
         except ValueError:
             print("[ERROR] Both arguments must be numeric!")
         except UndefinedConditionError:
@@ -594,7 +605,7 @@ This function does not take any arguments.
     def perform_cjmp(self, cond, func, label, source, dest):
         self.check_jargs(cond, source, dest)
         self.push_ps([func, [label, source, dest]])
-        if self.evalcond(cond, source, dest):
+        if self.cexec() and self.evalcond(cond, source, dest):
             self.perform_jmp(label)
         else:
             if label == "while_0":
