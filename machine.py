@@ -35,26 +35,25 @@ class Processor(Cmd):
 
     memsize = 16
     memset = {}
-    regset = {"R1": "Null", "R2": "Null", "R3": "Null", "R4": "Null", "AC": "Null"}
+    regset = {"R1": "Null", "R2": "Null", "R3": "Null", "R4": "Null", "AC": "Null", "SP": 0}
     program_stack = []
     condition_stack = []
-    stackpointer = 0
     defined_conds = ["lt", "gt", "lte", "gte", "eq", "neq"]
 
 
     def postcmd(self, stop, line):
         # print("SP : %d" % self.stackpointer)
-        if self.stackpointer != len(self.program_stack):
-            args = str(self.program_stack[self.stackpointer][1]).replace("[", "").replace("]", "").replace("'", "")
-            self.cmdqueue.append(self.program_stack[self.stackpointer][0].__name__.replace("do_", "", 1)+" "+args)
+        if self.regset["SP"] != len(self.program_stack):
+            args = str(self.program_stack[self.regset["SP"]][1]).replace("[", "").replace("]", "").replace("'", "")
+            self.cmdqueue.append(self.program_stack[self.regset["SP"]][0].__name__.replace("do_", "", 1)+" "+args)
         return Cmd.postcmd(self, stop, line)
 
 
     def push_ps(self, args):
-        if self.stackpointer == len(self.program_stack):
+        if self.regset["SP"] == len(self.program_stack):
             self.program_stack.append(args)
             # print("Pushing to stack %s" % str(args))
-        self.stackpointer += 1
+        self.regset["SP"] += 1
 
 
     def default(self, line):
@@ -136,13 +135,16 @@ Syntax :
 [source] can be either a variable name or a register number
 [destination] should must be a register number
         """
-        try:
-            self.perform_load(args[0], args[1])
-            self.push_ps([self.do_load, args])
-        except IllegalRegisterError:
-            print("[ERROR] Bad register number %s " % args[1])
-        except NotInMemoryError:
-            print("[ERROR] No such variable in memory")
+        if args[1] in ["AC", "SP"]:
+            print("[ERROR] Unable to access priviledged registers!")
+        else:
+            try:
+                self.perform_load(args[0], args[1])
+                self.push_ps([self.do_load, args])
+            except IllegalRegisterError:
+                print("[ERROR] Bad register number %s " % args[1])
+            except NotInMemoryError:
+                print("[ERROR] No such variable in memory")
 
 
     @argcheck(2)
@@ -278,13 +280,160 @@ This function does not take any arguments.
                 self.perform_endwhile(args)
             except NotInWhileError:
                 print("[ERROR] Not in a while loop!")
+
     
-    
+    @argcheck(1)
+    def do_setlabel(self, args):
+        """
+Assigns the next instruction with a label, to be later used with various jump calls
+Syntax :
+        setlabel [label]
+[label] must be a valid variable name
+If no such label exists, a new label will be created in memory.
+However, if such a label exists, its value will be replaced.
+        """
+        try:
+            self.perform_setlabel(args)
+            self.push_ps([self.do_setlabel, args])
+        except ValueError:
+            print("[ERROR] Label must be a valid variable name!")
+        except MemoryFullError:
+            print("[ERROR] Memory is full!")
+
+
+    @argcheck(1)
+    def do_jmp(self, args):
+        """
+Jumps to the argument label in the call stack, and executes subsequent calls until it reaches the end of the stack.
+This is however, an one time call. This call itself will not be saved in program stack. Hence to perform conditional
+jump, use other calls. See `help` for more information.
+Syntax :
+        jmp [label]
+[label] must be a predefined label name.
+If no such label exists, and error will be raised.
+        """
+        try:
+            self.perform_jmp(args)
+        except NotInMemoryError:
+            print("[ERROR] No such label exists in memory!")
+
+
+    @argcheck(3)
+    def do_jne(self, args):
+        """
+Jump to the specific label if arg1 is not equal to arg2
+Syntax :
+        jne [label], [arg1], [arg2]
+[label] must be a predefined label
+[arg1] must be a variable name or register name
+[arg2] can be any constant, variable name, or register name
+        """
+        try:
+            self.perform_cjmp("neq", self.do_jne, args[0], args[1], args[2])
+        except NotInMemoryError:
+            print("[ERROR] The label or variables not in memory!")
+        except ValueError:
+            print("[ERROR] All variables must contain numeric value")
+
+
+    @argcheck(3)
+    def do_jeq(self, args):
+        """
+Jump to the specific label if arg1 is equal to arg2
+Syntax :
+        jne [label], [arg1], [arg2]
+[label] must be a predefined label
+[arg1] must be a variable name or register name
+[arg2] can be any constant, variable name, or register name
+        """
+        try:
+            self.perform_cjmp("eq", self.do_jeq, args[0], args[1], args[2])
+        except NotInMemoryError:
+            print("[ERROR] The label or variables not in memory!")
+        except ValueError:
+            print("[ERROR] All variables must contain numeric value")
+
+
+    @argcheck(3)
+    def do_jgt(self, args):
+        """
+Jump to the specific label if arg1 is greater than arg2
+Syntax :
+        jne [label], [arg1], [arg2]
+[label] must be a predefined label
+[arg1] must be a variable name or register name
+[arg2] can be any constant, variable name, or register name
+        """
+        try:
+            self.perform_cjmp("gt", self.do_jgt, args[0], args[1], args[2])
+        except NotInMemoryError:
+            print("[ERROR] The label or variables not in memory!")
+        except ValueError:
+            print("[ERROR] All variables must contain numeric value")
+
+
+    @argcheck(3)
+    def do_jlt(self, args):
+        """
+Jump to the specific label if arg1 is less than arg2
+Syntax :
+        jne [label], [arg1], [arg2]
+[label] must be a predefined label
+[arg1] must be a variable name or register name
+[arg2] can be any constant, variable name, or register name
+        """
+        try:
+            self.perform_cjmp("lt", self.do_jlt, args[0], args[1], args[2])
+        except NotInMemoryError:
+            print("[ERROR] The label or variables not in memory!")
+        except ValueError:
+            print("[ERROR] All variables must contain numeric value")
+
+
+    @argcheck(3)
+    def do_jgte(self, args):
+        """
+Jump to the specific label if arg1 is greater than or equal to arg2
+Syntax :
+        jne [label], [arg1], [arg2]
+[label] must be a predefined label
+[arg1] must be a variable name or register name
+[arg2] can be any constant, variable name, or register name
+        """
+        try:
+            self.perform_cjmp("gte", self.do_jgte, args[0], args[1], args[2])
+        except NotInMemoryError:
+            print("[ERROR] The label or variables not in memory!")
+        except ValueError:
+            print("[ERROR] All variables must contain numeric value")
+
+
+    @argcheck(3)
+    def do_jlte(self, args):
+        """
+Jump to the specific label if arg1 is less than or equal to arg2
+Syntax :
+        jne [label], [arg1], [arg2]
+[label] must be a predefined label
+[arg1] must be a variable name or register name
+[arg2] can be any constant, variable name, or register name
+        """
+        try:
+            self.perform_cjmp("lte", self.do_jlte, args[0], args[1], args[2])
+        except NotInMemoryError:
+            print("[ERROR] The label or variables not in memory!")
+        except ValueError:
+            print("[ERROR] All variables must contain numeric value")
+
+
     def do_quit(self, args):
         """
 Quits the system.
 After calling this method, present instance of the system is freed,
 along with all of its registers, memory, and stacks.
+Syntax :
+        quit
+This function does not take any arguments.
         """
         print("[INFO]Shutting down..")
         raise SystemExit
@@ -372,8 +521,7 @@ along with all of its registers, memory, and stacks.
         else:
             raise NotInMemoryError
 
-
-    def perform_while(self, cond, source, dest):
+    def check_jargs(self, cond, source, dest):
         if cond not in self.defined_conds:
             raise UndefinedConditionError
         elif (source not in self.memset) and (source not in self.regset):
@@ -389,7 +537,12 @@ along with all of its registers, memory, and stacks.
                 float(self.memset[dest])
             else:
                 float(dest)
-            self.condition_stack.insert(0, [self.stackpointer, cond, source, dest])
+
+    def perform_while(self, cond, source, dest):
+        self.check_jargs(cond, source, dest)
+        label = "while_"+str(len(self.condition_stack))
+        self.condition_stack.insert(0, [label, cond, source, dest])
+        self.perform_setlabel(label)
 
 
     def getval(self, arg):
@@ -401,27 +554,44 @@ along with all of its registers, memory, and stacks.
             return float(arg)
 
 
+    def evalcond(self, cond, source, dest):
+        getval = self.getval
+        if (cond == "eq" and getval(source) == getval(dest)) \
+        or (cond == "neq" and getval(source) != getval(dest)) \
+        or (cond == "lt" and getval(source) < getval(dest)) \
+        or (cond == "gt" and getval(source) > getval(dest)) \
+        or (cond == "lte" and getval(source) <= getval(dest)) \
+        or (cond == "gte" and getval(source) >= getval(dest)):
+            return True
+        else:
+            return False
+
     def perform_endwhile(self, args):
         if len(self.condition_stack) == 0:
             raise NotInWhileError
         else:
-            self.push_ps([self.do_endwhile, args])
-            arg = self.condition_stack[0]
-            lastwhile = arg[0]
+            arg = self.condition_stack.pop(0)
+            label = arg[0]
             cond = arg[1]
             source = arg[2]
             dest = arg[3]
-            getval = self.getval
-            if (cond == "eq" and getval(source) == getval(dest)) \
-            or (cond == "neq" and getval(source) != getval(dest)) \
-            or (cond == "lt" and getval(source) < getval(dest)) \
-            or (cond == "gt" and getval(source) > getval(dest)) \
-            or (cond == "lte" and getval(source) <= getval(dest)) \
-            or (cond == "gte" and getval(source) >= getval(dest)):
-                self.stackpointer = lastwhile+1
-            else:
-                self.condition_stack.pop(0)
-                # print(self.condition_stack[0])
+            func = getattr(self, "do_j"+cond)
+            self.perform_cjmp(cond, func, label, source, dest)
+
+
+    def perform_setlabel(self, args):
+        self.perform_let(self.regset["SP"]+1, "jmplabel_"+args)
+
+
+    def perform_jmp(self, args):
+        self.perform_load("jmplabel_"+args, "SP")
+
+
+    def perform_cjmp(self, cond, func, label, source, dest):
+        self.check_jargs(cond, source, dest)
+        self.push_ps([func, [label, source, dest]])
+        if self.evalcond(cond, source, dest):
+            self.perform_jmp(label)
 
 
 console = Processor()
