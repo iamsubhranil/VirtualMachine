@@ -1,4 +1,5 @@
 from cmd import Cmd
+from functools import wraps
 
 class IllegalRegisterError(Exception):
 
@@ -44,7 +45,8 @@ class Processor(Cmd):
     def postcmd(self, stop, line):
         # print("SP : %d" % self.stackpointer)
         if self.stackpointer != len(self.program_stack):
-            self.cmdqueue.append(self.program_stack[self.stackpointer][0].__name__.replace("do_", "", 1)+" "+self.program_stack[self.stackpointer][1])
+            args = str(self.program_stack[self.stackpointer][1]).replace("[", "").replace("]", "").replace("'", "")
+            self.cmdqueue.append(self.program_stack[self.stackpointer][0].__name__.replace("do_", "", 1)+" "+args)
         return Cmd.postcmd(self, stop, line)
 
 
@@ -59,6 +61,7 @@ class Processor(Cmd):
         print("[ERROR] Command not recognised! See `help`.")
         return 0
 
+
     def do_help(self, args):
         """
 Shows help on the command usage.
@@ -70,6 +73,43 @@ Syntax :
         return Cmd.do_help(self, args)
 
 
+    def noargs(self, req, name):
+        nostring = "One"
+        iss = ""
+        verb = "is"
+        if req > 1:
+            iss = "s"
+            verb = "are"
+        if req == 2:
+            nostring = "Two"
+        elif req == 3:
+            nostring = "Three"
+        print("[ERROR] %s argument%s %s required for `%s`! See `help %s`." % (nostring, iss, verb, name, name))
+
+    
+    def argcheck(num):
+        def narg(func):
+            name = func.__name__.replace("do_", "", 1)
+            @wraps(func)
+            def checkargs(self, args):
+                if len(args) == 0:
+                    return self.noargs(num, name)
+                else:
+                    arglist = args.split(", ")
+                    if len(arglist) != num:
+                        def wrongsyntax(self, args):
+                            print("[ERROR] Wrong syntax for function `%s`! See `help %s`." % (name, name))
+                        return wrongsyntax(self, args)
+                    else:
+                        if num == 1:
+                            return func(self, arglist[0])
+                        else:
+                            return func(self, arglist)
+            return checkargs
+        return narg
+     
+
+    @argcheck(1)
     def do_print(self, args):
         """
 Prints the value of specified register or variable
@@ -85,8 +125,9 @@ Syntax :
                 self.push_ps([self.do_print, args])
             except NotInMemoryError:
                 print("[ERROR] No such variable in memory")
-
-
+    
+    
+    @argcheck(2)
     def do_load(self, args):
         """
 Loads a value in register.
@@ -95,22 +136,16 @@ Syntax :
 [source] can be either a variable name or a register number
 [destination] should must be a register number
         """
-        if len(args)==0:
-            print("[ERROR] Specify a source and a destination!")
-        else:
-            address = args.split(", ")
-            if len(address) != 2:
-                print("[ERROR] Wrong syntax for `load`!")
-            else:
-                try:
-                    self.perform_load(address[0], address[1])
-                    self.push_ps([self.do_load, args])
-                except IllegalRegisterError:
-                    print("[ERROR] Bad register number %s " % address[1])
-                except NotInMemoryError:
-                    print("[ERROR] No such variable in memory")
+        try:
+            self.perform_load(args[0], args[1])
+            self.push_ps([self.do_load, args])
+        except IllegalRegisterError:
+            print("[ERROR] Bad register number %s " % args[1])
+        except NotInMemoryError:
+            print("[ERROR] No such variable in memory")
 
 
+    @argcheck(2)
     def do_store(self, args):
         """
 Stores the value from a register to memory
@@ -120,24 +155,18 @@ Syntax :
 [destination] can be either a variable name or register
 If no such variable exists in memory, a new one will be created implicitly
         """
-        if len(args) == 0:
-            print("[ERROR] Specify a source and destination!")
-        else:
-            address = args.split(", ")
-            if len(address) != 2:
-                print("[ERROR] Wrong syntax for `store`!")
-            else:
-                try:
-                    self.perform_store(address[0], address[1])
-                    self.push_ps([self.do_store, args])
-                except IllegalRegisterError:
-                    print("[ERROR] Bad register number %s!" % address[0])
-                except ValueError:
-                    print("[ERROR] Bad variable name %s!" % address[1])
-                except MemoryFullError:
-                    print("[ERROR] Memory full!")
+        try:
+            self.perform_store(args[0], args[1])
+            self.push_ps([self.do_store, args])
+        except IllegalRegisterError:
+            print("[ERROR] Bad register number %s!" % args[0])
+        except ValueError:
+            print("[ERROR] Bad variable name %s!" % args[1])
+        except MemoryFullError:
+            print("[ERROR] Memory full!")
                 
-                
+    
+    @argcheck(2)        
     def do_let(self, args):
         """
 Stores the specified value in a variable in memory
@@ -148,22 +177,16 @@ Syntax :
 If the variable exists, that will be replaced.
 Otherwise, a new variable will be created.
         """
-        if len(args) == 0:
-            print("[ERROR] Specify a value to store!")
-        else:
-            address = args.split(", ")
-            if len(address) != 2:
-                print("[ERROR] Wrong syntax for `let`")
-            else:
-                try:
-                    self.perform_let(address[0], address[1])
-                    self.push_ps([self.do_let, args])
-                except MemoryFullError:
-                    print("[ERROR] Memory full")
-                except ValueError:
-                    print("[ERROR] Bad variable name %s " % address[1])
+        try:
+            self.perform_let(args[0], args[1])
+            self.push_ps([self.do_let, args])
+        except MemoryFullError:
+            print("[ERROR] Memory full")
+        except ValueError:
+            print("[ERROR] Bad variable name %s " % args[1])
 
 
+    @argcheck(1)
     def do_unlet(self, args):
         """
 Unloads a variable from memory.
@@ -172,16 +195,14 @@ Syntax :
 [variable] must be a variable in memory
 Error will be raised if no such variable exists in memory.
         """
-        if len(args) == 0:
-            print("[ERROR] Wrong syntax for `unlet`")
-        else:
-            try:
-                self.perform_unlet(args)
-                self.push_ps([self.do_unlet, args])
-            except NotInMemoryError:
-                print("[ERROR] No such variable exists in memory!")
+        try:
+            self.perform_unlet(args)
+            self.push_ps([self.do_unlet, args])
+        except NotInMemoryError:
+            print("[ERROR] No such variable exists in memory!")
 
     
+    @argcheck(1)
     def do_incr(self, args):
         """
 Increments the value of a variable by unity.
@@ -189,18 +210,16 @@ Syntax :
         incr [destination]
 [destination] can be either a variable of a register address
         """
-        if len(args) == 0:
-            print("[ERROR] Wrong syntax for `incr`")
-        else:
-            try:
-                self.perform_incr(args)
-                self.push_ps([self.do_incr, args])
-            except ValueError:
-                print("[ERROR] Value stored in %s is not a number!" % args)
-            except NotInMemoryError:
-                print("[ERROR] No such variable exists in memory!")
+        try:
+            self.perform_incr(args)
+            self.push_ps([self.do_incr, args])
+        except ValueError:
+            print("[ERROR] Value stored in %s is not a number!" % args)
+        except NotInMemoryError:
+            print("[ERROR] No such variable exists in memory!")
 
 
+    @argcheck(1)
     def do_decr(self, args):
         """
 Decrements the value of a variable by unity.
@@ -208,18 +227,16 @@ Syntax :
         incr [destination]
 [destination] can be either a variable of a register address
         """
-        if len(args) == 0:
-            print("[ERROR] Wrong syntax for `decr`")
-        else:
-            try:
-                self.perform_decr(args)
-                self.push_ps([self.do_decr, args])
-            except ValueError:
-                print("[ERROR] Value stored in %s is not a number!" % args)
-            except NotInMemoryError:
-                print("[ERROR] No such variable exists in memory!")
+        try:
+            self.perform_decr(args)
+            self.push_ps([self.do_decr, args])
+        except ValueError:
+            print("[ERROR] Value stored in %s is not a number!" % args)
+        except NotInMemoryError:
+            print("[ERROR] No such variable exists in memory!")
     
     
+    @argcheck(3) 
     def do_while(self, args):
         """
 Execute a block of statements repeatedly based on a condition.
@@ -236,22 +253,15 @@ Syntax :
 [var/val] can be either of a constant, memory variable or register number
 Each `while` statement must be completed with a `endwhile` statement. Only when the `endwhile` statement will be encountered, the statements between the `while-endwhile` block will be executed continuously until the condition is met.
         """
-        if len(args) < 0:
-            print("[ERROR] Wrong syntax for `while`!")
-        else:
-            conds = args.split(", ")
-            if len(conds) != 3:
-                print("[ERROR] Wrong number of arguments for while")
-            else:
-                try:
-                    self.perform_while(conds[0], conds[1], conds[2])
-                    self.push_ps([self.do_while, args])
-                except ValueError:
-                    print("[ERROR] Both arguments must be numeric!")
-                except UndefinedConditionError:
-                    print("[ERROR] Condition is not defined!")
-                except NotInMemoryError:
-                    print("[ERROR] Variable is not in memory!")
+        try:
+            self.perform_while(args[0], args[1], args[2])
+            self.push_ps([self.do_while, args])
+        except ValueError:
+            print("[ERROR] Both arguments must be numeric!")
+        except UndefinedConditionError:
+            print("[ERROR] Condition is not defined!")
+        except NotInMemoryError:
+            print("[ERROR] Variable is not in memory!")
 
 
     def do_endwhile(self, args):
@@ -271,7 +281,11 @@ This function does not take any arguments.
     
     
     def do_quit(self, args):
-        """Quits the system"""
+        """
+Quits the system.
+After calling this method, present instance of the system is freed,
+along with all of its registers, memory, and stacks.
+        """
         print("[INFO]Shutting down..")
         raise SystemExit
 
