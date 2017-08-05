@@ -38,11 +38,12 @@ class Processor(Cmd):
     regset = {"R1": "Null", "R2": "Null", "R3": "Null", "R4": "Null", "AC": "Null", "SP": 0}
     program_stack = []
     condition_stack = []
+    priviledged_reg = ["AC", "SP", "IR"]
     defined_conds = ["lt", "gt", "lte", "gte", "eq", "neq"]
 
 
     def postcmd(self, stop, line):
-        # print("SP : %d" % self.stackpointer)
+        # print("SP : %d" % self.regset["SP"])
         if self.regset["SP"] != len(self.program_stack):
             args = str(self.program_stack[self.regset["SP"]][1]).replace("[", "").replace("]", "").replace("'", "")
             self.cmdqueue.append(self.program_stack[self.regset["SP"]][0].__name__.replace("do_", "", 1)+" "+args)
@@ -135,7 +136,7 @@ Syntax :
 [source] can be either a variable name or a register number
 [destination] should must be a register number
         """
-        if args[1] in ["AC", "SP"]:
+        if args[1] in self.priviledged_reg:
             print("[ERROR] Unable to access priviledged registers!")
         else:
             try:
@@ -241,7 +242,7 @@ Syntax :
     @argcheck(3) 
     def do_while(self, args):
         """
-Execute a block of statements repeatedly based on a condition.
+Execute a block of statements repeatedly based on a condition. This call basically sets a label on the next instruction to be later executed.
 Syntax :
         while [cond], [var], [var/val]
 [cond] will be one of
@@ -257,7 +258,7 @@ Each `while` statement must be completed with a `endwhile` statement. Only when 
         """
         try:
             self.perform_while(args[0], args[1], args[2])
-            self.push_ps([self.do_while, args])
+            # self.push_ps([self.do_while, args])
         except ValueError:
             print("[ERROR] Both arguments must be numeric!")
         except UndefinedConditionError:
@@ -268,7 +269,7 @@ Each `while` statement must be completed with a `endwhile` statement. Only when 
 
     def do_endwhile(self, args):
         """
-Denotes the termination and starts a while loop.
+Denotes the termination and starts a while loop. This call basically invokes one of the conditional jump calls on the last while label created.
 Syntax :
         endwhile
 This function does not take any arguments.
@@ -285,7 +286,7 @@ This function does not take any arguments.
     @argcheck(1)
     def do_setlabel(self, args):
         """
-Assigns the next instruction with a label, to be later used with various jump calls
+Assigns the next instruction with a label, to be later used with various jump calls. This call is not pushed to the call stack itself.
 Syntax :
         setlabel [label]
 [label] must be a valid variable name
@@ -294,7 +295,6 @@ However, if such a label exists, its value will be replaced.
         """
         try:
             self.perform_setlabel(args)
-            self.push_ps([self.do_setlabel, args])
         except ValueError:
             print("[ERROR] Label must be a valid variable name!")
         except MemoryFullError:
@@ -319,17 +319,17 @@ If no such label exists, and error will be raised.
 
 
     @argcheck(3)
-    def do_jne(self, args):
+    def do_jneq(self, args):
         """
 Jump to the specific label if arg1 is not equal to arg2
 Syntax :
-        jne [label], [arg1], [arg2]
+        jneq [label], [arg1], [arg2]
 [label] must be a predefined label
 [arg1] must be a variable name or register name
 [arg2] can be any constant, variable name, or register name
         """
         try:
-            self.perform_cjmp("neq", self.do_jne, args[0], args[1], args[2])
+            self.perform_cjmp("neq", self.do_jneq, args[0], args[1], args[2])
         except NotInMemoryError:
             print("[ERROR] The label or variables not in memory!")
         except ValueError:
@@ -541,7 +541,7 @@ This function does not take any arguments.
     def perform_while(self, cond, source, dest):
         self.check_jargs(cond, source, dest)
         label = "while_"+str(len(self.condition_stack))
-        self.condition_stack.insert(0, [label, cond, source, dest])
+        self.condition_stack.append([label, cond, source, dest]) 
         self.perform_setlabel(label)
 
 
@@ -570,7 +570,8 @@ This function does not take any arguments.
         if len(self.condition_stack) == 0:
             raise NotInWhileError
         else:
-            arg = self.condition_stack.pop(0)
+            # print("[DEBUG] Condition stack "+str(self.condition_stack))
+            arg = self.condition_stack.pop()
             label = arg[0]
             cond = arg[1]
             source = arg[2]
@@ -580,10 +581,13 @@ This function does not take any arguments.
 
 
     def perform_setlabel(self, args):
-        self.perform_let(self.regset["SP"]+1, "jmplabel_"+args)
+        # print("[DEBUG] Setting label %s to pointer %d" % (args, self.regset["SP"]))
+        self.perform_let(self.regset["SP"], "jmplabel_"+args)
 
 
     def perform_jmp(self, args):
+        # print("[DEBUG] Jumping to label %s " % args)
+        # print("[DEBUG] Memory layout : "+str(self.memset))
         self.perform_load("jmplabel_"+args, "SP")
 
 
