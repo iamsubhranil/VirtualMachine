@@ -596,6 +596,16 @@ This function does not take any arguments.
         self.push_ps([func, [label, source, dest]])
         if self.evalcond(cond, source, dest):
             self.perform_jmp(label)
+        else:
+            if label == "while_0":
+                i = 0
+                while 1:
+                    try:
+                        self.perform_unlet("jmplabel_while_"+str(i))
+                        i += 1
+                    except NotInMemoryError:
+                        break
+        
 
 
 console = Processor()
