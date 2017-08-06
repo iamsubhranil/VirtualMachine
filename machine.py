@@ -28,7 +28,13 @@ class UndefinedConditionError(Exception):
 class NotInWhileError(Exception):
 
     def __init__(self):
-        super(NotInWhileError, self).__init__(self, "No in a while loop!", None)
+        super(NotInWhileError, self).__init__(self, "Not in a while loop!", None)
+
+
+class NotInIfError(Exception):
+
+    def __init__(self):
+        super(NotInIfError, self).__init__(self, "Not in if branch!", None)
 
 
 class Processor(Cmd):
@@ -437,6 +443,51 @@ Syntax :
             print("[ERROR] All variables must contain numeric value")
 
 
+
+    @argcheck(3)
+    def do_if(self, args):
+        """
+Performs a conditional execution of the subsequent statements until the next endif or else
+Syntax :
+        if [cond], [arg1], [arg2]
+[cond] will be one of
+        1. lt : less than
+        2. gt : greater than
+        3. lte : less than or equal to
+        4. gte : greater than or equal to
+        5. eq : equal to
+        6. ne : not equal to
+[arg1] can be either of a memory variable or a register number
+[arg2] can be either of a constant, memory variable or register number
+If the given condition is false, no statements will be executed until the next
+else or endif is encountered.
+        """
+        try:
+            self.perform_if(args[0], args[1], args[2])
+            self.push_ps([self.do_if, args])
+        except ValueError:
+            print("[ERROR] All arguments must be numeric")
+        except UndefinedConditionError:
+            print("[ERROR] Given condition is not defined")
+
+    
+    def do_endif(self, args):
+        """
+Terminates an if condition.
+Syntax :
+        endif
+This call must be issued after an if call, otherwise an error will be raised.
+This function doesn't take any arguments.
+        """
+        if len(args) != 0:
+            print("[ERROR] This function does not take any arguments!")
+        else:
+            try:
+                self.perform_endif()
+            except NotInIfError:
+                print("[ERROR] Not in an if block!")
+
+
     def do_quit(self, args):
         """
 Quits the system.
@@ -617,6 +668,19 @@ This function does not take any arguments.
                     except NotInMemoryError:
                         break
         
+
+    def perform_if(self, cond, source, dest):
+        self.check_jargs(cond, source, dest)
+        label = "iflabel_"+str(len(self.condition_stack))
+        self.condition_stack.append([label, cond, source, dest])
+
+    
+    def perform_endif(self):
+        exp = "iflabel_"+str(len(self.condition_stack)-1)
+        if len(self.condition_stack) > 0 and exp == self.condition_stack[-1][0]:
+            self.condition_stack.pop()
+        else:
+            raise NotInIfError
 
 
 console = Processor()
