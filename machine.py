@@ -469,6 +469,8 @@ else or endif is encountered.
             print("[ERROR] All arguments must be numeric")
         except UndefinedConditionError:
             print("[ERROR] Given condition is not defined")
+        except NotInMemoryError:
+            print("[ERROR] Variable is not in memory!")
 
     
     def do_endif(self, args):
@@ -484,6 +486,7 @@ This function doesn't take any arguments.
         else:
             try:
                 self.perform_endif()
+                self.push_ps([self.do_endif, args])
             except NotInIfError:
                 print("[ERROR] Not in an if block!")
 
@@ -633,8 +636,12 @@ This function does not take any arguments.
             raise NotInWhileError
         else:
             # print("[DEBUG] Condition stack "+str(self.condition_stack))
-            arg = self.condition_stack.pop()
+            exp = "while_"+str(len(self.condition_stack)-1)
+            arg = self.condition_stack[-1]
             label = arg[0]
+            if label != exp:
+                raise NotInWhileError
+            self.condition_stack.pop()
             cond = arg[1]
             source = arg[2]
             dest = arg[3]
