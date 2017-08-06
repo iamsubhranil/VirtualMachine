@@ -72,7 +72,12 @@ class Processor(Cmd):
         if len(self.condition_stack) == 0:
             return True
         else:
-            return self.evalcond(self.condition_stack[0][1], self.condition_stack[0][2], self.condition_stack[0][3])
+            res = True
+            for i in self.condition_stack:
+                res = res and self.evalcond(i[1], i[2], i[3])
+                if not res:
+                    break
+            return res
 
 
     def do_help(self, args):
