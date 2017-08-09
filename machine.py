@@ -39,28 +39,49 @@ class NotInIfError(Exception):
 
 class Processor(Cmd):
 
-    memsize = 16
+    memsize = 128
     memset = {}
-    regset = {"R1": "Null", "R2": "Null", "R3": "Null", "R4": "Null", "AC": "Null", "SP": 0}
+    regset = {"R1": "Null", "R2": "Null", "R3": "Null", "R4": "Null", "AC": "Null", "LP": 0, "MP": 0, "IPB": -1, "IP": -1, "BR": 0, "LR": 0}
+    symbol_table = {}
     program_stack = []
     condition_stack = []
-    priviledged_reg = ["AC", "SP", "IR"]
+    priviledged_reg = ["AC", "LP", "IR", "MP", "IPB", "IP", "BR", "LR"]
     defined_conds = ["lt", "gt", "lte", "gte", "eq", "neq"]
 
 
     def postcmd(self, stop, line):
         # print("SP : %d" % self.regset["SP"])
-        if self.regset["SP"] != len(self.program_stack):
-            args = str(self.program_stack[self.regset["SP"]][1]).replace("[", "").replace("]", "").replace("'", "")
-            self.cmdqueue.append(self.program_stack[self.regset["SP"]][0].__name__.replace("do_", "", 1)+" "+args)
+        if self.regset["IP"] != -1:
+            #print("[DEBUG] Jumping [IP: %d MP: %d]" % (self.regset["IP"], self.regset["MP"]))
+            ins = self.memset[self.regset["IP"]]
+            self.cmdqueue.append(ins[0])
+            self.regset["IP"] = ins[1]
+
+        #print("Mem : "+str(self.memset))
+        #print("Reg : "+str(self.regset))
+        #print("SymT : "+str(self.symbol_table))
+
         return Cmd.postcmd(self, stop, line)
 
 
+    def functostr(self, args):
+        fargs = str(args[1]).replace("[", "").replace("]", "").replace("'", "")
+        name = args[0].__name__.replace("do_", "", 1)
+        fcall = name+" "+fargs
+        return fcall
+
+
     def push_ps(self, args):
-        if self.regset["SP"] == len(self.program_stack):
-            self.program_stack.append(args)
-            # print("Pushing to stack %s" % str(args))
-        self.regset["SP"] += 1
+        if self.regset["IP"] == -1 and self.regset["BR"] == 0:
+            fcall = self.functostr(args)
+            self.memset[self.regset["MP"]] =  [fcall, -1]
+            if self.regset["IPB"] != -1:
+                self.memset[self.regset["IPB"]][1] = self.regset["MP"]
+            self.perform_load("MP", "IPB")
+            self.regset["MP"] += 1
+            if self.regset["LR"] > 0:
+                self.regset["LR"] -= 1
+                # print("Pushed to mem %s" % str(args))
 
 
     def default(self, line):
@@ -87,7 +108,7 @@ Syntax :
         help [command]
 [command] can be any of the available commands
         """
-        self.push_ps([self.do_help, args])
+        # self.push_ps([self.do_help, args])
         return Cmd.do_help(self, args)
 
 
@@ -324,6 +345,21 @@ However, if such a label exists, its value will be replaced.
 
 
     @argcheck(1)
+    def do_remlabel(self, args):
+        """
+Removes a label from memory.
+Syntax :
+        remlabel [label]
+[label] must be a predefined label
+If no such label exists, an error will be raised.
+        """
+        try:
+            self.perform_remlabel(args)
+        except NotInMemoryError:
+            print("[ERROR] No such label in memory!")
+
+
+    @argcheck(1)
     def do_jmp(self, args):
         """
 Jumps to the argument label in the call stack, and executes subsequent calls until it reaches the end of the stack.
@@ -524,8 +560,8 @@ This function does not take any arguments.
     def perform_print(self, args):
         if args in self.regset:
             print("[INFO] Value of register "+args+" is "+str(self.regset[args]))
-        elif args in self.memset:
-            print("[INFO] Value of variable "+args+" is "+str(self.memset[args]))
+        elif args in self.symbol_table:
+            print("[INFO] Value of variable "+args+" is "+str(self.memset[self.symbol_table[args]]))
         else:
             raise NotInMemoryError
 
@@ -534,8 +570,8 @@ This function does not take any arguments.
         if dest in self.regset:
             if source in self.regset:
                 self.regset[dest] = self.regset[source]
-            elif source in self.memset:
-                self.regset[dest] = self.memset[source]
+            elif source in self.symbol_table:
+                self.regset[dest] = self.memset[self.symbol_table[source]]
             else:
                 raise NotInMemoryError
         else: 
@@ -554,24 +590,29 @@ This function does not take any arguments.
 
 
     def perform_let(self, value, dest):
-        if dest in self.memset:
-            self.memset[dest] = value
+        if dest in self.symbol_table:
+            self.memset[self.symbol_table[dest]] = value
         elif len(self.memset) < self.memsize:
             self.checkName(dest)
-            self.memset[dest] = value
+            self.memset[self.regset["MP"]] =  value
+            self.symbol_table[dest] = self.regset["MP"]
+            self.regset["MP"] += 1
+            if self.regset["LR"] > 0:
+                self.memset[self.regset["LP"]] = self.regset["MP"]
         else:
             raise MemoryFullError
 
 
     def perform_unlet(self, dest):
-        if dest in self.memset:
-            del self.memset[dest]
+        if dest in self.symbol_table:
+            del self.memset[self.symbol_table[dest]]
+            del self.symbol_table[dest]
         else:
             raise NotInMemoryError
 
 
     def perform_incr(self, dest):
-        if dest in self.memset:
+        if dest in self.symbol_table:
             self.perform_load(dest, "AC")
             self.perform_incr("AC")
             self.perform_store("AC", dest)
@@ -582,7 +623,7 @@ This function does not take any arguments.
 
 
     def perform_decr(self, dest):
-        if dest in self.memset:
+        if dest in self.symbol_table:
             self.perform_load(dest, "AC")
             self.perform_decr("AC")
             self.perform_store("AC", dest)
@@ -594,17 +635,17 @@ This function does not take any arguments.
     def check_jargs(self, cond, source, dest):
         if cond not in self.defined_conds:
             raise UndefinedConditionError
-        elif (source not in self.memset) and (source not in self.regset):
+        elif (source not in self.symbol_table) and (source not in self.regset):
             raise NotInMemoryError
         else:
             if source in self.regset:
                 float(self.regset[source])
             else:
-                float(self.memset[source])
+                float(self.memset[self.symbol_table[source]])
             if dest in self.regset:
                 float(self.regset[dest])
-            elif dest in self.memset:
-                float(self.memset[dest])
+            elif dest in self.symbol_table:
+                float(self.memset[self.symbol_table[dest]])
             else:
                 float(dest)
 
@@ -618,8 +659,8 @@ This function does not take any arguments.
     def getval(self, arg):
         if arg in self.regset:
             return float(self.regset[arg])
-        elif arg in self.memset:
-            return float(self.memset[arg])
+        elif arg in self.symbol_table:
+            return float(self.memset[self.symbol_table[arg]])
         else:
             return float(arg)
 
@@ -656,21 +697,33 @@ This function does not take any arguments.
 
     def perform_setlabel(self, args):
         # print("[DEBUG] Setting label %s to pointer %d" % (args, self.regset["SP"]))
-        self.perform_let(self.regset["SP"], "jmplabel_"+args)
+        if "jmplabel_"+args not in self.symbol_table:
+            self.regset["LP"] = self.regset["MP"]
+            self.perform_let(self.regset["MP"]+1, "jmplabel_"+args)
+        else:
+            self.regset["LP"] = self.symbol_table["jmplabel_"+args]
+            self.perform_let(self.regset["MP"], "jmplabel_"+args)
+        self.regset["LR"] += 1
+
+
+    def perform_remlabel(self, args):
+        self.perform_unlet("jmplabel_"+args)
 
 
     def perform_jmp(self, args):
-        # print("[DEBUG] Jumping to label %s " % args)
+        #print("[DEBUG] Jumping to label %s at address : " % args)
         # print("[DEBUG] Memory layout : "+str(self.memset))
-        self.perform_load("jmplabel_"+args, "SP")
+        self.perform_load("jmplabel_"+args, "IP")
 
 
     def perform_cjmp(self, cond, func, label, source, dest):
         self.check_jargs(cond, source, dest)
         self.push_ps([func, [label, source, dest]])
         if self.cexec() and self.evalcond(cond, source, dest):
+            self.regset["BR"] = 1
             self.perform_jmp(label)
         else:
+            self.regset["BR"] = 0
             if label == "while_0":
                 i = 0
                 while 1:
