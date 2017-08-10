@@ -15,7 +15,7 @@
 #define NUM_MEM 16383 // 2^16
 
 #define MAGIC 0xBAADFACE
-#define VERSION 1
+#define VERSION 2
 
 /* Operation codes */
 
@@ -114,6 +114,7 @@ typedef enum{
 
 typedef struct{
 	BinaryFormat format;
+	size_t instructionLength;
 	size_t expectedSize;
 } Footer;
 
@@ -564,7 +565,7 @@ void saveBinary(Instruction *ins[], uint16_t length, Machine *m){
 		fwrite(&in, sizeof(Instruction), 1, fp);
 		i++;
 	}
-	Footer footer = {OPTIMISED, sizeof(Header)+sizeof(Instruction)*length+sizeof(Footer)};
+	Footer footer = {OPTIMISED, sizeof(Instruction), sizeof(Header)+sizeof(Instruction)*length+sizeof(Footer)};
 	fwrite(&footer, sizeof(Footer), 1, fp);
 	fclose(fp);
 }
@@ -585,6 +586,11 @@ void loadBinary(Machine *m){
 			Footer f;
 			fread(&f, sizeof(Footer), 1, fp);
 			printf("\n[LOADER] Expected file size : %lu", f.expectedSize);
+			printf("\n[LOADER] Instruction length : %lu bytes", f.instructionLength);
+			if(f.instructionLength!=sizeof(Instruction)){
+				printf("\n[ERROR] Incompatible instruction format! Please update binary version in the program!");
+				return;
+			}
 			printf("\n[LOADER] Binary format : %d\n", (int)f.format);
 			uint16_t i = 0;
 			while(i<h.numIns){
