@@ -14,6 +14,8 @@
 
 #define NUM_MEM 16383 // 2^16
 
+#define MAGIC 0xBAADFACE
+#define VERSION 1
 
 /* Operation codes */
 
@@ -96,6 +98,24 @@ typedef struct{
 	OpCode opcode;
 	Operands operands;
 } Instruction;
+
+/* Binary header and footer */
+
+typedef struct{
+	uint32_t magic;
+	uint8_t version;
+	uint16_t numIns;
+} Header;
+
+typedef enum{
+	FLEXIBLE, // With variable addressing
+	OPTIMISED // With direct addressing
+} BinaryFormat;
+
+typedef struct{
+	BinaryFormat format;
+	size_t expectedSize;
+} Footer;
 
 /* Machine primitives */
 
@@ -211,7 +231,7 @@ uint16_t getFirstFree(Machine m){
 
 uint16_t memallocate(Machine *m, char *symbol){
 	uint16_t allocationAddress = getFirstFree(*m);
-	printf("\n[MEMALLOCATE] Allocating memory for %s at address %u\n", symbol, allocationAddress);
+	//printf("\n[MEMALLOCATE] Allocating memory for %s at address %u\n", symbol, allocationAddress);
 	SymbolTable *newSymbol = (SymbolTable *)malloc(sizeof(SymbolTable));
 	newSymbol->symbolName = strdup(symbol);
 	newSymbol->next = NULL;
@@ -235,7 +255,7 @@ uint16_t getAddress(Machine *m, char *symbol){
 	SymbolTable *table = m->symbolTable;
 	while(table!=NULL){
 		if(strcmp(symbol, table->symbolName)==0){
-			printf("\n[GETADDR] Address of %s is %u", symbol, table->mema);
+			//printf("\n[GETADDR] Address of %s is %u\n", symbol, table->mema);
 			return table->mema;
 		}
 		table = table->next;
@@ -268,8 +288,8 @@ void deallocate(Machine *m, char *symbol){
 void execute(Machine *m, Instruction ins){
 	Data d1, d2;
 	Operand op1, op2;
-	printf("\n[EXECUTE] Instruction details : ");
-	printIns(ins);
+	//printf("\n[EXECUTE] Instruction details : ");
+	//printIns(ins);
 	switch(ins.format){
 		case ONE_ADDRESS: op1 = ins.operands.onea.op1;
 				  d1 = op1.data;
@@ -342,8 +362,8 @@ void execute(Machine *m, Instruction ins){
 				   case DIRECT: m->registers[d2.rega] = readData(m, d1.mema);
 						break;
 				   case VARIABLE: m->registers[d2.rega] = readData(m, getAddress(m, d1.name));
-						  printf("\n[LOAD] Load complete to reg%u of val %u!\n", d2.rega, m->registers[d2.rega]);
-						  printf("\n[LOAD] Expected : %u", readData(m, getAddress(m, d1.name)));
+						  // printf("\n[LOAD] Load complete to reg%u of val %u!\n", d2.rega, m->registers[d2.rega]);
+						  // printf("\n[LOAD] Expected : %u", readData(m, getAddress(m, d1.name)));
 						  break;
 				   case IMMEDIATE: break; // TODO: Handle error
 			   }
@@ -359,24 +379,24 @@ void execute(Machine *m, Instruction ins){
 			    }
 			    break;
 		case HALT: //printf("\nHALTING REQUIRED!");
-			   m->halt = 1;
-			   break;
+			    m->halt = 1;
+			    break;
 		case UNLET: deallocate(m, d1.name);
 			    break;
 		case PRINT:{ 
-				switch(op1.mode){
+				   switch(op1.mode){
 					   case IMMEDIATE: printf("%u", d1.imv);
 							   break;
 					   case REGISTER: //printf("\n[REG] %u", d1.rega);
 							   printf("%u", m->registers[d1.rega]);
-							   printf("\n[PRINT] Printed from reg%u", d1.rega);
-							  break;
+							   // printf("\n[PRINT] Printed from reg%u", d1.rega);
+							   break;
 					   case DIRECT: printf("%u", readData(m, d1.mema));
 							break;
 					   case VARIABLE: printf("%u", readData(m, getAddress(m, d1.name)));
 							  break;
-				}
-			   	break;
+				   }
+				   break;
 			   }
 	}
 
@@ -402,7 +422,7 @@ Cell fetch(Machine *m){
 
 void run(Machine *m){
 	while(!m->halt){
-		printf("\n[MACHINE] Running!");
+		//printf("\n[MACHINE] Running!");
 		Cell cell = fetch(m);
 		Instruction ins = decode(cell);
 		execute(m, ins);
@@ -505,7 +525,7 @@ void getDirectOperand(Operand *op, char *val){
 }
 
 void getRegisterOrVariableOperand(Operand *op, char *val){
-	if(val[0]=='R')
+	if(val[0]=='R' || val[0]=='r')
 		getRegisterOperand(op, val);
 	else
 		getVariableOperand(op, val);
@@ -515,106 +535,178 @@ Instruction * newInstruction(){
 	return (Instruction *)malloc(sizeof(Instruction));
 }
 
-int main(){
+void convertVariableToDirect(Operand* a, Machine *m){
+	if(a->mode==VARIABLE){
+		a->mode = DIRECT;
+		a->data.mema = getAddress(m, a->data.name);
+	}
+}
+
+void saveBinary(Instruction *ins[], uint16_t length, Machine *m){
+	FILE *fp = fopen("instruction.bin", "wb");
+	if(!fp)
+		return;
+	Header header = {MAGIC, VERSION, length};
+	fwrite(&header, sizeof(Header), 1, fp);
+	uint16_t i = 0;
+	while(i<length){
+		Instruction in = *(ins[i]);
+		switch(in.format){
+			case ZERO_ADDRESS: break;
+			case ONE_ADDRESS:
+				convertVariableToDirect(&in.operands.onea.op1, m);
+				break;
+			case TWO_ADDRESS:
+				convertVariableToDirect(&in.operands.twoa.op1, m);
+				convertVariableToDirect(&in.operands.twoa.op2, m);
+				break;
+		}
+		fwrite(&in, sizeof(Instruction), 1, fp);
+		i++;
+	}
+	Footer footer = {OPTIMISED, sizeof(Header)+sizeof(Instruction)*length+sizeof(Footer)};
+	fwrite(&footer, sizeof(Footer), 1, fp);
+	fclose(fp);
+}
+
+void loadBinary(Machine *m){
+	FILE *fp = fopen("instruction.bin", "rb");
+	if(!fp)
+		return;
+	Header h;
+	fread(&h, sizeof(Header), 1, fp);
+	if(h.magic==MAGIC){
+		printf("\n[LOADER] Magic matched");
+		if(h.version==VERSION){
+			printf("\n[LOADER] Version matched\n[LOADER] Instructions : %u", h.numIns);
+
+			Instruction instructions[h.numIns];
+			fread(instructions, sizeof(Instruction), h.numIns, fp);
+			Footer f;
+			fread(&f, sizeof(Footer), 1, fp);
+			printf("\n[LOADER] Expected file size : %lu", f.expectedSize);
+			printf("\n[LOADER] Binary format : %d\n", (int)f.format);
+			uint16_t i = 0;
+			while(i<h.numIns){
+				//printIns(instructions[i]);
+				writeInstruction(m, i, instructions[i]);
+				i++;
+			}
+			run(m);
+		}
+		else
+			printf("\n[ERROR] Binary version incompatible!");
+	}
+	else
+		printf("\n[ERROR] Magic not matched! This is not a valid executable file!");
+}
+
+int main(int argc, char **argv){
 	Machine m;
 	m.symbolTable = NULL;
 	m.halt = 0;
 	m.pc = 0;
-
-	int insert = 1;
-	char *buff = NULL;
-	size_t size;
-	char *token;
-	uint16_t add = 0;
-	//Instruction *instructions = NULL, *backup = NULL;
-	while(insert){
-		printf("\n > ");
-		size = readline(&buff);
-		token = strtok(buff, " ");
-		Instruction* is = newInstruction();
-		OpCode *op = &(is->opcode);
-		InstructionFormat *format = &(is->format);
-		Operands *os = &(is->operands);
-		printf("\n[INPUT] [%s]",token);
-		if(strcmp(token, "let")==0){
-			*op = LET;
-			*format = TWO_ADDRESS;
-		}
-		else if(strcmp(token, "unlet")==0){
-			*op = UNLET;
-			*format = ONE_ADDRESS;
-		}
-		else if(strcmp(token, "incr")==0){
-			*op = INCR;
-			*format = ONE_ADDRESS;
-		}
-		else if(strcmp(token, "load")==0){
-			*op = LOAD;
-			*format = TWO_ADDRESS;
-		}
-		else if(strcmp(token, "store")==0){
-			*op = STORE;
-			*format = TWO_ADDRESS;
-		}
-		else if(strcmp(token, "decr")==0){
-			*op = DECR;
-			*format = ONE_ADDRESS;
-		}
-		else if(strcmp(token, "print")==0){
-			*op = PRINT;
-			*format = ONE_ADDRESS;
-		}
-		else if(strcmp(token, "halt\n")==0){
-			*op = HALT;
-			*format = ZERO_ADDRESS;
-			//printf("\n[HALT] Entered!");
-		}
-		switch(*format){
-			case ONE_ADDRESS:{ 
-						 token = strtok(NULL, " ");
-						 switch(*op){
-							 case UNLET: getVariableOperand(&(os->onea.op1), token);
-								     break;
-							 default: getRegisterOrVariableOperand(&(os->onea.op1), token);
-								  break;
-						 }
-						 break;
-					 }
-			case TWO_ADDRESS:{
-						 Operand *op1 = &(os->twoa.op1);
-						 Operand *op2 = &(os->twoa.op2);
-						 token = strtok(NULL, " ");
-						 switch(*op){
-							 case LET: getConstantOperand(op1, token);
-								   token = strtok(NULL, " ");
-								   getVariableOperand(op2, token);
-								   break;
-							 case LOAD: getRegisterOrVariableOperand(op1, token);
-								    token = strtok(NULL, " ");
-								    getRegisterOperand(op2, token);
-								    break;
-							 case STORE: getRegisterOperand(op1, token);
-								     token = strtok(NULL, " ");
-								     getRegisterOrVariableOperand(op2, token);
-								     break;
-							 default: printf("[ERROR] No such two address operations!");
-						 }
-						 break;
-					 }
-			case ZERO_ADDRESS:{
-						  os->zeroa.dummy = '0';
-						  break;
-					  }
-
-		}
-		writeInstruction(&m, add, *is);
-		//printMem(m, add);
-		add++;
-		if(*op==HALT)
-			insert = 0;
+	if(argc==2){
+		loadBinary(&m);
 	}
+	else{
+		int insert = 1;
+		char *buff = NULL;
+		size_t size;
+		char *token;
+		uint16_t add = 0;
+		Instruction *instructions[100];
+		while(insert){
+			printf("\n > ");
+			size = readline(&buff);
+			token = strtok(buff, " ");
+			Instruction* is = newInstruction();
+			OpCode *op = &(is->opcode);
+			InstructionFormat *format = &(is->format);
+			Operands *os = &(is->operands);
+			//printf("\n[INPUT] [%s]",token);
+			if(strcmp(token, "let")==0){
+				*op = LET;
+				*format = TWO_ADDRESS;
+			}
+			else if(strcmp(token, "unlet")==0){
+				*op = UNLET;
+				*format = ONE_ADDRESS;
+			}
+			else if(strcmp(token, "incr")==0){
+				*op = INCR;
+				*format = ONE_ADDRESS;
+			}
+			else if(strcmp(token, "load")==0){
+				*op = LOAD;
+				*format = TWO_ADDRESS;
+			}
+			else if(strcmp(token, "store")==0){
+				*op = STORE;
+				*format = TWO_ADDRESS;
+			}
+			else if(strcmp(token, "decr")==0){
+				*op = DECR;
+				*format = ONE_ADDRESS;
+			}
+			else if(strcmp(token, "print")==0){
+				*op = PRINT;
+				*format = ONE_ADDRESS;
+			}
+			else if(strcmp(token, "halt\n")==0){
+				*op = HALT;
+				*format = ZERO_ADDRESS;
+				//printf("\n[HALT] Entered!");
+			}
+			switch(*format){
+				case ONE_ADDRESS:{ 
+							 token = strtok(NULL, " ");
+							 switch(*op){
+								 case UNLET: getVariableOperand(&(os->onea.op1), token);
+									     break;
+								 default: getRegisterOrVariableOperand(&(os->onea.op1), token);
+									  break;
+							 }
+							 break;
+						 }
+				case TWO_ADDRESS:{
+							 Operand *op1 = &(os->twoa.op1);
+							 Operand *op2 = &(os->twoa.op2);
+							 token = strtok(NULL, " ");
+							 switch(*op){
+								 case LET: getConstantOperand(op1, token);
+									   token = strtok(NULL, " ");
+									   getVariableOperand(op2, token);
+									   break;
+								 case LOAD: getRegisterOrVariableOperand(op1, token);
+									    token = strtok(NULL, " ");
+									    getRegisterOperand(op2, token);
+									    break;
+								 case STORE: getRegisterOperand(op1, token);
+									     token = strtok(NULL, " ");
+									     getRegisterOrVariableOperand(op2, token);
+									     break;
+								 default: printf("[ERROR] No such two address operations!");
+							 }
+							 break;
+						 }
+				case ZERO_ADDRESS:{
+							  os->zeroa.dummy = '0';
+							  break;
+						  }
 
-	run(&m);
+			}
+			writeInstruction(&m, add, *is);
+			//printMem(m, add);
+			instructions[add] = is;
+			add++;
+			if(*op==HALT)
+				insert = 0;
+		}
+
+		run(&m);
+		saveBinary(instructions, add, &m);
+	}
 
 	printf("\n");
 
