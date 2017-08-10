@@ -22,6 +22,7 @@ typedef enum{
 	INCR,
 	DECR,
 	UNLET,
+	PRINT,
 	/* Two address */
 	LOAD,
 	STORE,
@@ -30,7 +31,7 @@ typedef enum{
 	HALT
 } OpCode;
 
-static char* insNames[] = {"INCR", "DECR", "UNLET", "LOAD", "STORE", "LET", "HALT"};
+static char* insNames[] = {"INCR", "DECR", "UNLET", "PRINT", "LOAD", "STORE", "LET", "HALT"};
 
 /* Addressing modes */
 
@@ -40,6 +41,8 @@ typedef enum{
 	DIRECT,
 	VARIABLE
 } AddressingMode;
+
+static char* modeNames[] = {"IMMEDIATE", "REGISTER", "DIRECT", "VARIABLE"};
 
 /* Data types */
 
@@ -84,6 +87,8 @@ typedef enum{
 	TWO_ADDRESS
 } InstructionFormat;
 
+static char* formatNames[] = {"ZERO_ADDRESS", "ONE_ADDRESS", "TWO_ADDRESS"};
+
 /* Instruction definition */
 
 typedef struct{
@@ -106,13 +111,15 @@ typedef enum{
 	DATA
 } CellType;
 
+static char* cellNames[] = {"INSTRUCTION", "DATA"};
+
 typedef union{
 	Instruction instruction;
 	uint32_t value;
 } CellData;
 
 typedef struct{
-	unsigned short free : 1;
+	unsigned short acquired : 1;
 	CellType type;
 	CellData data;
 } Cell;
@@ -126,32 +133,62 @@ typedef struct{
 	SymbolTable *symbolTable;
 } Machine;
 
+void printOperand(Operand o){
+	printf("\n\t\t\tAddressing Mode : %s", modeNames[o.mode]);
+	switch(o.mode){
+		case IMMEDIATE: printf("\n\t\t\tValue : %u", o.data.imv);
+				break;
+		case REGISTER: printf("\n\t\t\tValue : %u", o.data.rega);
+			       break;
+		case DIRECT: printf("\n\t\t\tValue : %u", o.data.mema);
+			     break;
+		case VARIABLE: printf("\n\t\t\tValue : %s", o.data.name);
+	}
+}
+
 void printIns(Instruction ins){
 	printf("\n\tInstruction : %s", insNames[ins.opcode]);
+	printf("\n\t\tFormat : %s", formatNames[ins.format]);
+	switch(ins.format){
+		case ONE_ADDRESS: printf("\n\t\tOperand 1 :");
+				  printOperand(ins.operands.onea.op1);
+				  break;
+		case TWO_ADDRESS: printf("\n\t\tOperand 1 :");
+				  printOperand(ins.operands.twoa.op1);
+				  printf("\n\t\tOperand 2 : ");
+				  printOperand(ins.operands.twoa.op2);
+				  break;
+		default: printf("\n\t\tNo operands!");
+			 break;
+	}
 }
 
 void printMem(Machine m, uint16_t add){
 	Cell c = m.memory[add];
-	switch(c.type){
-		case INSTRUCTION:
-				printf("\nCell Type : Instruction");
+	printf("\nCell Address : %u", add);
+	printf("\nCell Type : %s", cellNames[c.type]);
+	printf("\nAcquired : %u", c.acquired);
+	if(c.acquired){
+		switch(c.type){
+			case INSTRUCTION:
 				printIns(c.data.instruction);
 				break;
-		case DATA: printf("\nCell Type : Data");
-			   break;
+			case DATA: printf("\n\tValue : %u", c.data.value);
+				   break;
+		}
 	}
-	printf(" Free : %u", c.free);
+	printf("\n");
 }
 
 void writeData(Machine *m, uint16_t add, uint32_t val){
-	m->memory[add].free = 0;
+	m->memory[add].acquired = 1;
 	m->memory[add].type = DATA;
 	m->memory[add].data.value = val;
 	m->occupiedAddress++;
 }
 
 void writeInstruction(Machine *m, uint16_t add, Instruction ins){
-	m->memory[add].free = 0;
+	m->memory[add].acquired = 1;
 	m->memory[add].type = INSTRUCTION;
 	m->memory[add].data.instruction = ins;
 	m->occupiedAddress++;
@@ -167,13 +204,14 @@ Instruction readInstruction(Machine *m, uint16_t add){
 
 uint16_t getFirstFree(Machine m){
 	uint16_t add = 0;
-	while(!m.memory[add].free)
+	while(m.memory[add].acquired)
 		add++;
 	return add;
 }
 
 uint16_t memallocate(Machine *m, char *symbol){
 	uint16_t allocationAddress = getFirstFree(*m);
+	printf("\n[MEMALLOCATE] Allocating memory for %s at address %u\n", symbol, allocationAddress);
 	SymbolTable *newSymbol = (SymbolTable *)malloc(sizeof(SymbolTable));
 	newSymbol->symbolName = strdup(symbol);
 	newSymbol->next = NULL;
@@ -187,6 +225,7 @@ uint16_t memallocate(Machine *m, char *symbol){
 			temp = temp->next;
 		temp->next = newSymbol;
 	}
+	m->memory[allocationAddress].acquired = 1;
 	m->memory[allocationAddress].data.value = 0;
 	m->occupiedAddress++;
 	return allocationAddress;
@@ -195,8 +234,11 @@ uint16_t memallocate(Machine *m, char *symbol){
 uint16_t getAddress(Machine *m, char *symbol){
 	SymbolTable *table = m->symbolTable;
 	while(table!=NULL){
-		if(strcmp(symbol, table->symbolName)==0)
+		if(strcmp(symbol, table->symbolName)==0){
+			printf("\n[GETADDR] Address of %s is %u", symbol, table->mema);
 			return table->mema;
+		}
+		table = table->next;
 	}
 	return memallocate(m, symbol);
 }
@@ -210,7 +252,7 @@ void deallocate(Machine *m, char *symbol){
 				m->symbolTable = m->symbolTable->next;
 			else
 				backup->next = temp->next;
-			m->memory[temp->mema].free = 1;
+			m->memory[temp->mema].acquired = 0;
 			free(temp);
 			m->occupiedAddress--;
 			break;
@@ -226,7 +268,8 @@ void deallocate(Machine *m, char *symbol){
 void execute(Machine *m, Instruction ins){
 	Data d1, d2;
 	Operand op1, op2;
-	printf("\n[INSTRUCTION] OpCode : %d Format : %d", (int)ins.opcode, (int)ins.format);
+	printf("\n[EXECUTE] Instruction details : ");
+	printIns(ins);
 	switch(ins.format){
 		case ONE_ADDRESS: op1 = ins.operands.onea.op1;
 				  d1 = op1.data;
@@ -285,7 +328,7 @@ void execute(Machine *m, Instruction ins){
 					  case DIRECT: writeData(m, d2.mema, val);
 						       break;
 					  case VARIABLE: {
-								 uint16_t add = getAddress(m, d1.name);
+								 uint16_t add = getAddress(m, d2.name);
 								 writeData(m, add, val);
 								 break;
 							 }
@@ -299,6 +342,8 @@ void execute(Machine *m, Instruction ins){
 				   case DIRECT: m->registers[d2.rega] = readData(m, d1.mema);
 						break;
 				   case VARIABLE: m->registers[d2.rega] = readData(m, getAddress(m, d1.name));
+						  printf("\n[LOAD] Load complete to reg%u of val %u!\n", d2.rega, m->registers[d2.rega]);
+						  printf("\n[LOAD] Expected : %u", readData(m, getAddress(m, d1.name)));
 						  break;
 				   case IMMEDIATE: break; // TODO: Handle error
 			   }
@@ -312,11 +357,27 @@ void execute(Machine *m, Instruction ins){
 						   break;
 				    case IMMEDIATE: break; // TODO: Handle error
 			    }
-		case HALT: printf("\nHALTING REQUIRED!");
-			    m->halt = 1;
-			   break;
-		case UNLET: printf("\n[ERROR] UNLET not defined!");
 			    break;
+		case HALT: //printf("\nHALTING REQUIRED!");
+			   m->halt = 1;
+			   break;
+		case UNLET: deallocate(m, d1.name);
+			    break;
+		case PRINT:{ 
+				switch(op1.mode){
+					   case IMMEDIATE: printf("%u", d1.imv);
+							   break;
+					   case REGISTER: //printf("\n[REG] %u", d1.rega);
+							   printf("%u", m->registers[d1.rega]);
+							   printf("\n[PRINT] Printed from reg%u", d1.rega);
+							  break;
+					   case DIRECT: printf("%u", readData(m, d1.mema));
+							break;
+					   case VARIABLE: printf("%u", readData(m, getAddress(m, d1.name)));
+							  break;
+				}
+			   	break;
+			   }
 	}
 
 }
@@ -334,12 +395,14 @@ Instruction decode(Cell cell){
 
 Cell fetch(Machine *m){
 	uint16_t pc = m->pc;
-	printf("\nPC : %u", pc);
+	//printf("\nProgram Counter : %u", pc);
+	//printMem(*m, pc);
 	return m->memory[pc];
 }
 
 void run(Machine *m){
 	while(!m->halt){
+		printf("\n[MACHINE] Running!");
 		Cell cell = fetch(m);
 		Instruction ins = decode(cell);
 		execute(m, ins);
@@ -397,20 +460,20 @@ void getConstantOperand(Operand *op, char *val){
 }
 
 char *stripFirst(char *val){
-	char *buffer = NULL;
+	char *buffer = (char *)malloc(sizeof(char));
 	size_t len = strlen(val);
 	size_t i = 1;
 	size_t dummy = 0;
-	while(i>len){
+	while(i<len){
 		buffer = addToBuffer(buffer, &dummy, val[i]);
 		i++;
 	}
+	addToBuffer(buffer, &dummy, '\0');
 	return buffer;
 }
 
 void getRegisterOperand(Operand *op, char *val){
 	char *buffer = stripFirst(val);
-
 	uint8_t regNo = (uint8_t)atoi(buffer);
 	Data d = {.rega = regNo};
 	op->mode = REGISTER;
@@ -419,7 +482,15 @@ void getRegisterOperand(Operand *op, char *val){
 }
 
 void getVariableOperand(Operand *op, char *val){
-	Data d = {.name = strdup(val)};
+	char *name;
+	if(val[strlen(val)-1]=='\n')
+		name = strndup(val, strlen(val)-1);
+	else
+		name = strdup(val);
+	size_t size = strlen(name);
+	name = addToBuffer(name, &size, '\0');
+
+	Data d = {.name = strdup(name)};
 	op->mode = VARIABLE;
 	op->data = d;
 }
@@ -469,6 +540,10 @@ int main(){
 			*op = LET;
 			*format = TWO_ADDRESS;
 		}
+		else if(strcmp(token, "unlet")==0){
+			*op = UNLET;
+			*format = ONE_ADDRESS;
+		}
 		else if(strcmp(token, "incr")==0){
 			*op = INCR;
 			*format = ONE_ADDRESS;
@@ -485,7 +560,11 @@ int main(){
 			*op = DECR;
 			*format = ONE_ADDRESS;
 		}
-		else if(strcmp(token, "halt")>=0){
+		else if(strcmp(token, "print")==0){
+			*op = PRINT;
+			*format = ONE_ADDRESS;
+		}
+		else if(strcmp(token, "halt\n")==0){
 			*op = HALT;
 			*format = ZERO_ADDRESS;
 			//printf("\n[HALT] Entered!");
@@ -530,14 +609,14 @@ int main(){
 		}
 		writeInstruction(&m, add, *is);
 		//printMem(m, add);
-		printIns(m.memory[add].data.instruction);
-		//printf("\n[INP] OpCode : %d Format : %d Address : %u", (*is).opcode, (*is).format, add);
 		add++;
 		if(*op==HALT)
 			insert = 0;
 	}
 
 	run(&m);
+
+	printf("\n");
 
 	return 0;
 }
