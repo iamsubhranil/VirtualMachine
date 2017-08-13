@@ -9,7 +9,6 @@
  *
  */
 
-#define REG_BITS 4
 #define NUM_REG 16 // 2^4
 
 #define NUM_MEM 16383 // 2^16
