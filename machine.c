@@ -14,8 +14,8 @@
 
 #define NUM_MEM 16383 // 2^16
 
-#define MAGIC 0xBAADFACE
-#define VERSION 5
+#define MAGIC 0x564D4558 // VMEX
+#define VERSION 6
 
 /* Operation codes */
 
@@ -282,6 +282,7 @@ void execute(Machine *m, Instruction ins){
 	Operand op1, op2;
 	//printf("\n[EXECUTE] Instruction details : ");
 	//printIns(ins);
+	//printf("\n");
 	switch(ins.format){
 		case ONE_ADDRESS: op1 = ins.operands.onea.op1;
 				  d1 = op1.data;
@@ -545,7 +546,9 @@ void convertVariableToDirect(Operand* a, Machine *m){
 
 void writeHeader(FILE *fp, uint16_t length){	
 	Header header = {MAGIC, VERSION, length};
-	fwrite(&header, sizeof(Header), 1, fp);
+	fwrite(&(header.magic), sizeof(uint32_t), 1, fp);
+	fwrite(&(header.version), sizeof(uint8_t), 1, fp);
+	fwrite(&(header.numIns), sizeof(uint16_t), 1, fp);
 }
 
 void writeFooter(FILE *fp){	
@@ -623,7 +626,9 @@ void optimisedLoad(Machine *m){
 	if(!fp)
 		return;
 	Header h;
-	fread(&h, sizeof(Header), 1, fp);
+	fread(&(h.magic), sizeof(uint32_t), 1, fp);
+	fread(&(h.version), sizeof(uint8_t), 1, fp);
+	fread(&(h.numIns), sizeof(uint16_t), 1, fp);
 	if(h.magic==MAGIC){
 		printf("\n[LOADER] Magic matched");
 		if(h.version==VERSION){
@@ -675,7 +680,6 @@ int main(int argc, char **argv){
 	m.halt = 0;
 	m.pc = 0;
 	//printf("\nAddMode : %lu\nInsFormat : %lu", sizeof(AddressingMode), sizeof(InstructionFormat));
-	printf("\nInstruction length : %lu\n", sizeof(Instruction));
 	if(argc==2){
 		//loadBinary(&m);
 		optimisedLoad(&m);
