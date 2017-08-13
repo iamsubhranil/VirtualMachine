@@ -19,20 +19,6 @@
 
 /* Operation codes */
 
-//typedef enum{
-//	/* One address */
-//	INCR = 0x01A,
-//	DECR = 0x01B,
-//	UNLET = 0x01C,
-//	PRINT = 0x01D,
-//	/* Two address */
-//	LOAD = 0x02A,
-//	STORE = 0x02B,
-//	LET = 0x02C,
-//	/* Zero address */
-//	HALT = 0xBAD
-//} OpCode;
-
 #define INCR 0x10
 #define DECR 0x11
 #define UNLET 0x12
@@ -40,19 +26,11 @@
 #define LOAD 0x14
 #define STORE 0x16
 #define LET 0x17
-#define HALT 0xFF
-
+#define HALT 0x18
 
 static char* insNames[] = {"INCR", "DECR", "UNLET", "PRINT", "LOAD", "STORE", "LET", "HALT"};
 
 /* Addressing modes */
-
-//typedef enum{
-//	IMMEDIATE = 0x10A,
-//	REGISTER = 0x10B,
-//	DIRECT = 0x10C,
-//	VARIABLE = 0x10D
-//} AddressingMode;
 
 #define IMMEDIATE 0x20
 #define REGISTER 0x21
@@ -98,12 +76,6 @@ typedef union{
 
 /* Instruction Format */
 
-//typedef enum{
-//	ZERO_ADDRESS = 0x20A,
-//	ONE_ADDRESS = 0x20B,
-//	TWO_ADDRESS = 0x20C
-//} InstructionFormat;
-
 #define ZERO_ADDRESS 0x30
 #define ONE_ADDRESS 0x31
 #define TWO_ADDRESS 0x32
@@ -126,11 +98,7 @@ typedef struct{
 	uint16_t numIns;
 } Header;
 
-//typedef enum{
-//	FLEXIBLE = 0x30A, // With variable addressing
-//	OPTIMISED = 0x30B// With direct addressing
-//} BinaryFormat;
-
+/* Binary Format */
 #define FLEXIBLE 0x40
 #define OPTIMISED 0x41
 
@@ -179,7 +147,7 @@ typedef struct{
 } Machine;
 
 void printOperand(Operand o){
-	printf("\n\t\t\tAddressing Mode : %s", modeNames[o.mode]);
+	printf("\n\t\t\tAddressing Mode : %s", modeNames[o.mode - 0x20]);
 	switch(o.mode){
 		case IMMEDIATE: printf("\n\t\t\tValue : %u", o.data.imv);
 				break;
@@ -192,8 +160,8 @@ void printOperand(Operand o){
 }
 
 void printIns(Instruction ins){
-	printf("\n\tInstruction : %s", insNames[ins.opcode]);
-	printf("\n\t\tFormat : %s", formatNames[ins.format]);
+	printf("\n\tInstruction : %s", insNames[ins.opcode - 0x10]);
+	printf("\n\t\tFormat : %s", formatNames[ins.format - 0x30]);
 	switch(ins.format){
 		case ONE_ADDRESS: printf("\n\t\tOperand 1 :");
 				  printOperand(ins.operands.onea.op1);
