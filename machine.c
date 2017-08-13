@@ -27,8 +27,12 @@
 #define STORE 0x16
 #define LET 0x17
 #define HALT 0x18
+#define ADD 0x19
+#define SUB 0x1A
+#define MUL 0x1B
+#define DIV 0x1C
 
-static char* insNames[] = {"INCR", "DECR", "UNLET", "PRINT", "LOAD", "STORE", "LET", "HALT"};
+static char* insNames[] = {"INCR", "DECR", "UNLET", "PRINT", "LOAD", "STORE", "LET", "HALT", "ADD", "SUB", "MUL", "DIV"};
 
 /* Addressing modes */
 
@@ -274,6 +278,21 @@ void deallocate(Machine *m, char *symbol){
 	}
 }
 
+uint32_t getVal(Operand o, Machine *m){
+	Data d1 = o.data;
+	switch(o.mode){
+		case IMMEDIATE: return d1.imv;
+				break;
+		case REGISTER: return m->registers[d1.rega];
+			       break;
+		case DIRECT: return readData(m, d1.mema);
+			     break;
+		case VARIABLE: return readData(m, getAddress(m, d1.name));
+			       break;
+	}
+	return 0;
+}
+
 
 /* Machine cycle primitives */
 
@@ -400,6 +419,58 @@ void execute(Machine *m, Instruction ins){
 				   }
 				   break;
 			   }
+		case ADD: { uint32_t readval = getVal(op1, m), temp = 0;
+				  switch(op2.mode){
+					  case REGISTER: m->registers[d2.rega] += readval;
+							 break;
+					  case DIRECT: temp = readData(m, d2.mema);
+						       writeData(m, d2.mema, temp + readval);
+						       break;
+					  case VARIABLE: temp = readData(m, getAddress(m, d2.name));
+							 writeData(m, getAddress(m, d2.name), temp + readval);
+							 break;
+				  }
+				  break;
+			  }
+		case SUB: { uint32_t readval = getVal(op1, m), temp = 0;
+				  switch(op2.mode){
+					  case REGISTER: m->registers[d2.rega] -= readval;
+							 break;
+					  case DIRECT: temp = readData(m, d2.mema);
+						       writeData(m, d2.mema, temp - readval);
+						       break;
+					  case VARIABLE: temp = readData(m, getAddress(m, d2.name));
+							 writeData(m, getAddress(m, d2.name), temp - readval);
+							 break;
+				  }
+				  break;
+			  }
+		case MUL: { uint32_t readval = getVal(op1, m), temp = 0;
+				  switch(op2.mode){
+					  case REGISTER: m->registers[d2.rega] *= readval;
+							 break;
+					  case DIRECT: temp = readData(m, d2.mema);
+						       writeData(m, d2.mema, temp * readval);
+						       break;
+					  case VARIABLE: temp = readData(m, getAddress(m, d2.name));
+							 writeData(m, getAddress(m, d2.name), temp * readval);
+							 break;
+				  }
+				  break;
+			  }
+		case DIV: { uint32_t readval = getVal(op1, m), temp = 0;
+				  switch(op2.mode){
+					  case REGISTER: m->registers[d2.rega] /= readval;
+							 break;
+					  case DIRECT: temp = readData(m, d2.mema);
+						       writeData(m, d2.mema, temp / readval);
+						       break;
+					  case VARIABLE: temp = readData(m, getAddress(m, d2.name));
+							 writeData(m, getAddress(m, d2.name), temp / readval);
+							 break;
+				  }
+				  break;
+			  }
 	}
 
 }
@@ -531,6 +602,17 @@ void getRegisterOrVariableOperand(Operand *op, char *val){
 		getRegisterOperand(op, val);
 	else
 		getVariableOperand(op, val);
+}
+
+int digit(char c){
+	return c>='0' && c<='9';
+}
+
+void getOperand(Operand *op, char *val){
+	if(digit(val[0]))
+		return getConstantOperand(op, val);
+	else
+		return getRegisterOrVariableOperand(op, val);
 }
 
 Instruction * newInstruction(){
@@ -734,6 +816,22 @@ uint8_t parseInput(Machine *m, char *filename){
 			*format = ZERO_ADDRESS;
 			//printf("\n[HALT] Entered!");
 		}
+		else if(strcmp(token, "add")==0){
+			*op = ADD;
+			*format = TWO_ADDRESS;
+		}
+		else if(strcmp(token, "sub")==0){
+			*op = SUB;
+			*format = TWO_ADDRESS;
+		}
+		else if(strcmp(token, "mul")==0){
+			*op = MUL;
+			*format = TWO_ADDRESS;
+		}
+		else if(strcmp(token, "div")==0){
+			*op = DIV;
+			*format = TWO_ADDRESS;
+		}
 		else{
 			printf("\n[ERROR] Unknown operation %s", token);
 			free(is);
@@ -767,7 +865,16 @@ uint8_t parseInput(Machine *m, char *filename){
 								     token = strtok(NULL, " ");
 								     getRegisterOrVariableOperand(op2, token);
 								     break;
+							 case ADD: 
+							 case SUB:
+							 case MUL:
+							 case DIV:
+								   getOperand(op1, token);
+								   token = strtok(NULL, " ");
+								   getRegisterOrVariableOperand(op2, token);
+								   break;
 							 default: printf("[ERROR] No such two address operations!");
+								  break;
 						 }
 						 break;
 					 }
