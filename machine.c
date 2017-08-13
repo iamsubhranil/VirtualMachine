@@ -537,11 +537,11 @@ char * addToBuffer(char *buffer, size_t *bufferSize, char add){
 size_t readline(char **buffer, FILE *fp){
 	size_t read_size = 0; // The read counter
 	(*buffer) = (char *)malloc(sizeof(char)); // Allocate atleast one char of memory
-	char c = 1; // Temporary character to store stdin read
+	int c = 1; // Temporary character to store stdin read
 
 	while(c!=EOF && c!='\n'){ // Continue until the end of line
 		c = getc(fp); // Read a character from stdin
-		(*buffer) = addToBuffer((*buffer), &read_size, c=='\n'?'\0':c); // Add it to the buffer
+		(*buffer) = addToBuffer((*buffer), &read_size, (c=='\n'||c==EOF)?'\0':c); // Add it to the buffer
 	}
 	return read_size; // Return the amount of characters read
 }
