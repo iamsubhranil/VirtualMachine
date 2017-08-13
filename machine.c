@@ -521,7 +521,7 @@ char * addToBuffer(char *buffer, size_t *bufferSize, char add){
 	buffer = (char *)realloc(buffer, ++(*bufferSize)); //Call realloc to extend the buffer to bufferSize+1
 	//if(backup!=buffer && *bufferSize>1)
 	//	free(backup);
-	(*(buffer+(*bufferSize)-1)) = add; //Add the character to the newly available position
+	buffer[*bufferSize-1] = add; //Add the character to the newly available position
 	return buffer;
 }
 
@@ -541,7 +541,9 @@ size_t readline(char **buffer, FILE *fp){
 
 	while(c!=EOF && c!='\n'){ // Continue until the end of line
 		c = getc(fp); // Read a character from stdin
-		(*buffer) = addToBuffer((*buffer), &read_size, (c=='\n'||c==EOF)?'\0':c); // Add it to the buffer
+		(*buffer) = addToBuffer((*buffer), &read_size, (c=='\n'||c==EOF||c=='\r')?'\0':c); // Add it to the buffer
+		if(c=='\r') // Windows
+			c = getc(fp);
 	}
 	return read_size; // Return the amount of characters read
 }
@@ -553,7 +555,7 @@ void getConstantOperand(Operand *op, char *val){
 }
 
 char *stripFirst(char *val){
-	char *buffer = (char *)malloc(sizeof(char));
+	char *buffer = NULL;
 	size_t len = strlen(val);
 	size_t i = 1;
 	size_t dummy = 0;
@@ -561,7 +563,8 @@ char *stripFirst(char *val){
 		buffer = addToBuffer(buffer, &dummy, val[i]);
 		i++;
 	}
-	addToBuffer(buffer, &dummy, '\0');
+	if(buffer[dummy-1]!='\0')
+		buffer = addToBuffer(buffer, &dummy, '\0');
 	return buffer;
 }
 
@@ -593,7 +596,14 @@ char *strndup(const char *s, size_t n){
 
 void getVariableOperand(Operand *op, char *val){
 	char *nam = strdup(val);
-
+	if(nam[strlen(nam)-1]!='\0') {
+		if(nam[strlen(nam)-1]=='\r') // Windows
+			nam[strlen(nam)-1] = '\0';
+		else {
+			size_t sz = strlen(nam);
+			nam = addToBuffer(nam, &sz, '\0');
+		}
+	}
 	Data d = {.name = nam};
 	op->mode = VARIABLE;
 	op->data = d;
