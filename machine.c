@@ -299,9 +299,9 @@ uint32_t getVal(Operand o, Machine *m){
 void execute(Machine *m, Instruction ins){
 	Data d1, d2;
 	Operand op1, op2;
-	printf("\n[EXECUTE] Instruction details : ");
-	printIns(ins);
-	printf("\n");
+	//printf("\n[EXECUTE] Instruction details : ");
+	//printIns(ins);
+	//printf("\n");
 	switch(ins.format){
 		case ONE_ADDRESS: op1 = ins.operands.onea.op1;
 				  d1 = op1.data;
@@ -374,8 +374,8 @@ void execute(Machine *m, Instruction ins){
 				   case DIRECT: m->registers[d2.rega] = readData(m, d1.mema);
 						break;
 				   case VARIABLE: m->registers[d2.rega] = readData(m, getAddress(m, d1.name));
-						  // printf("\n[LOAD] Load complete to reg%u of val %u!\n", d2.rega, m->registers[d2.rega]);
-						  // printf("\n[LOAD] Expected : %u", readData(m, getAddress(m, d1.name)));
+						   //printf("\n[LOAD] Load complete to reg%u of val %u!\n", d2.rega, m->registers[d2.rega]);
+						   //printf("\n[LOAD] Expected : %u from address : %u\n", readData(m, getAddress(m, d1.name)), getAddress(m, d1.name));
 						  break;
 				   case IMMEDIATE: break; // TODO: Handle error
 			   }
@@ -541,7 +541,7 @@ size_t readline(char **buffer, FILE *fp){
 
 	while(c!=EOF && c!='\n'){ // Continue until the end of line
 		c = getc(fp); // Read a character from stdin
-		(*buffer) = addToBuffer((*buffer), &read_size, c); // Add it to the buffer
+		(*buffer) = addToBuffer((*buffer), &read_size, c=='\n'?'\0':c); // Add it to the buffer
 	}
 	return read_size; // Return the amount of characters read
 }
@@ -592,15 +592,9 @@ char *strndup(const char *s, size_t n){
 #endif
 
 void getVariableOperand(Operand *op, char *val){
-	char *name;
-	if(val[strlen(val)-1]=='\n')
-		name = strndup(val, strlen(val)-1);
-	else
-		name = strdup(val);
-	size_t size = strlen(name);
-	name = addToBuffer(name, &size, '\0');
+	char *nam = strdup(val);
 
-	Data d = {.name = strdup(name)};
+	Data d = {.name = nam};
 	op->mode = VARIABLE;
 	op->data = d;
 }
@@ -828,7 +822,7 @@ uint8_t parseInput(Machine *m, char *filename){
 			*op = PRINT;
 			*format = ONE_ADDRESS;
 		}
-		else if(strcmp(token, "halt\n")==0){
+		else if(strcmp(token, "halt")==0){
 			*op = HALT;
 			*format = ZERO_ADDRESS;
 			//printf("\n[HALT] Entered!");
