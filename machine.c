@@ -15,22 +15,22 @@
 #define NUM_MEM 16383 // 2^16
 
 #define MAGIC 0xBAADFACE
-#define VERSION 2
+#define VERSION 3
 
 /* Operation codes */
 
 typedef enum{
 	/* One address */
-	INCR,
-	DECR,
-	UNLET,
-	PRINT,
+	INCR = 0x00A,
+	DECR = 0x00B,
+	UNLET = 0x00C,
+	PRINT = 0x00D,
 	/* Two address */
-	LOAD,
-	STORE,
-	LET,
+	LOAD = 0x00E,
+	STORE = 0x00F,
+	LET = 0x0AA,
 	/* Zero address */
-	HALT
+	HALT = 0xBAD
 } OpCode;
 
 static char* insNames[] = {"INCR", "DECR", "UNLET", "PRINT", "LOAD", "STORE", "LET", "HALT"};
@@ -38,10 +38,10 @@ static char* insNames[] = {"INCR", "DECR", "UNLET", "PRINT", "LOAD", "STORE", "L
 /* Addressing modes */
 
 typedef enum{
-	IMMEDIATE,
-	REGISTER,
-	DIRECT,
-	VARIABLE
+	IMMEDIATE = 0x10A,
+	REGISTER = 0x10B,
+	DIRECT = 0x10C,
+	VARIABLE = 0x10D
 } AddressingMode;
 
 static char* modeNames[] = {"IMMEDIATE", "REGISTER", "DIRECT", "VARIABLE"};
@@ -84,9 +84,9 @@ typedef union{
 /* Instruction Format */
 
 typedef enum{
-	ZERO_ADDRESS,
-	ONE_ADDRESS,
-	TWO_ADDRESS
+	ZERO_ADDRESS = 0x20A,
+	ONE_ADDRESS = 0x20B,
+	TWO_ADDRESS = 0x20C
 } InstructionFormat;
 
 static char* formatNames[] = {"ZERO_ADDRESS", "ONE_ADDRESS", "TWO_ADDRESS"};
@@ -108,8 +108,8 @@ typedef struct{
 } Header;
 
 typedef enum{
-	FLEXIBLE, // With variable addressing
-	OPTIMISED // With direct addressing
+	FLEXIBLE = 0x30A, // With variable addressing
+	OPTIMISED = 0x30B// With direct addressing
 } BinaryFormat;
 
 typedef struct{
