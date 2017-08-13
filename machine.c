@@ -734,6 +734,11 @@ uint8_t parseInput(Machine *m, char *filename){
 			*format = ZERO_ADDRESS;
 			//printf("\n[HALT] Entered!");
 		}
+		else{
+			printf("\n[ERROR] Unknown operation %s", token);
+			free(is);
+			continue;
+		}
 		switch(*format){
 			case ONE_ADDRESS:{ 
 						 token = strtok(NULL, " ");
@@ -793,6 +798,7 @@ void help(){
 			\t2. machine [--input|-i] sourcefile [--output|-o] executable\n \
 			\t3. machine [--input|-i] sourcefile [--output|-o] executable [--norun|-n]\n \
 			\t4. machine [--run|-r] executable\n \
+			\t5. machine [--output|-o] executable\n \
 			\n");
 }
 
@@ -824,24 +830,20 @@ int main(int argc, char **argv){
 			help();
 			return 0;
 		}
-		else if((argc-r)%2!=0){
+		else if(((argc-1)-!r)%2!=0){
 			printf("\n[ERROR] Wrong arguments.\n");
 			help();
 			return 0;
-		}
-		else if(!inputFilename && outputFilename){
-			printf("\n[ERROR] Give an input file to compile!\n");
-			return 1;
 		}
 		else if(inputFilename && executableName){
 			printf("\n[ERROR] Wrong use of '--run'. Use '--output' instead.\n");
 			return 1;
 		}
-		else if((executableName || !outputFilename) && !r){
+		else if((executableName || (inputFilename && !outputFilename)) && !r){
 			printf("\n[ERROR] Wrong use of '--norun'. See '--help'.\n");
 			return 1;
 		}
-		else if(!inputFilename && !executableName){
+		else if(!inputFilename && !executableName && !outputFilename){
 			printf("\n[ERROR] Wrong arguments.\n");
 			help();
 			return 0;
@@ -849,7 +851,7 @@ int main(int argc, char **argv){
 
 		if(executableName)
 			optimisedLoad(&m, executableName);
-		else if(inputFilename){
+		else if(inputFilename || outputFilename){
 			uint16_t num = parseInput(&m, inputFilename);
 			if((num > 0) & r)
 				run(&m);
