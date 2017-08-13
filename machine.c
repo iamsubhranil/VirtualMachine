@@ -15,7 +15,7 @@
 #define NUM_MEM 16383 // 2^16
 
 #define MAGIC 0x564D4558 // VMEX
-#define VERSION 6
+#define VERSION 7
 
 /* Operation codes */
 
@@ -24,13 +24,13 @@
 #define UNLET 0x12
 #define PRINT 0x13
 #define LOAD 0x14
-#define STORE 0x16
-#define LET 0x17
-#define HALT 0x18
-#define ADD 0x19
-#define SUB 0x1A
-#define MUL 0x1B
-#define DIV 0x1C
+#define STORE 0x15
+#define LET 0x16
+#define HALT 0x17
+#define ADD 0x18
+#define SUB 0x19
+#define MUL 0x1A
+#define DIV 0x1B
 
 static char* insNames[] = {"INCR", "DECR", "UNLET", "PRINT", "LOAD", "STORE", "LET", "HALT", "ADD", "SUB", "MUL", "DIV"};
 
@@ -299,9 +299,9 @@ uint32_t getVal(Operand o, Machine *m){
 void execute(Machine *m, Instruction ins){
 	Data d1, d2;
 	Operand op1, op2;
-	//printf("\n[EXECUTE] Instruction details : ");
-	//printIns(ins);
-	//printf("\n");
+	printf("\n[EXECUTE] Instruction details : ");
+	printIns(ins);
+	printf("\n");
 	switch(ins.format){
 		case ONE_ADDRESS: op1 = ins.operands.onea.op1;
 				  d1 = op1.data;
