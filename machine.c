@@ -106,8 +106,7 @@ char *binaryFormat[] = {"FLEXIBLE", "OPTIMISED"};
 
 typedef struct{
 	uint8_t format;
-	size_t instructionLength;
-	size_t expectedSize;
+	uint8_t instructionLength;
 } Footer;
 
 /* Machine primitives */
@@ -549,8 +548,8 @@ void writeHeader(FILE *fp, uint16_t length){
 	fwrite(&header, sizeof(Header), 1, fp);
 }
 
-void writeFooter(FILE *fp, uint16_t length){	
-	Footer footer = {OPTIMISED, sizeof(Instruction), sizeof(Header)+sizeof(Instruction)*length+sizeof(Footer)};
+void writeFooter(FILE *fp){	
+	Footer footer = {OPTIMISED, sizeof(Instruction) & 0xFF};
 	fwrite(&footer, sizeof(Footer), 1, fp);
 }
 
@@ -602,7 +601,7 @@ void optimisedSave(Instruction *ins[], uint16_t length, Machine *m){
 		writeOperands(in, fp);
 		i++;
 	}
-	writeFooter(fp, length);
+	writeFooter(fp);
 }
 
 void readOperand(Operand *op, FILE *fp){
@@ -648,7 +647,7 @@ void optimisedLoad(Machine *m){
 			Footer f;
 			fread(&f, sizeof(Footer), 1, fp);
 			//printf("\n[LOADER] Expected file size : %lu", f.expectedSize);
-			printf("\n[LOADER] Instruction length : %lu bytes", f.instructionLength);
+			printf("\n[LOADER] Instruction length : %u bytes", f.instructionLength);
 			if(f.instructionLength!=sizeof(Instruction)){
 				printf("\n[ERROR] Incompatible instruction format! Please update binary version in the program!");
 				return;
