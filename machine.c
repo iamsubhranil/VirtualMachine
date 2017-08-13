@@ -654,8 +654,7 @@ void optimisedLoad(Machine *m){
 			//printf("\n[LOADER] Expected file size : %lu", f.expectedSize);
 			printf("\n[LOADER] Instruction length : %u bytes", f.instructionLength);
 			if(f.instructionLength!=sizeof(Instruction)){
-				printf("\n[ERROR] Incompatible instruction format! Please update binary version in the program!");
-				return;
+				printf("\n[LOADER:WARNING] Instruction length mismatch! The binary may be corrupted!");
 			}
 			printf("\n[LOADER] Binary format : %s\n", binaryFormat[f.format-0x40]);
 			i = 0;
