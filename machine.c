@@ -15,34 +15,49 @@
 #define NUM_MEM 16383 // 2^16
 
 #define MAGIC 0xBAADFACE
-#define VERSION 3
+#define VERSION 5
 
 /* Operation codes */
 
-typedef enum{
-	/* One address */
-	INCR = 0x00A,
-	DECR = 0x00B,
-	UNLET = 0x00C,
-	PRINT = 0x00D,
-	/* Two address */
-	LOAD = 0x00E,
-	STORE = 0x00F,
-	LET = 0x0AA,
-	/* Zero address */
-	HALT = 0xBAD
-} OpCode;
+//typedef enum{
+//	/* One address */
+//	INCR = 0x01A,
+//	DECR = 0x01B,
+//	UNLET = 0x01C,
+//	PRINT = 0x01D,
+//	/* Two address */
+//	LOAD = 0x02A,
+//	STORE = 0x02B,
+//	LET = 0x02C,
+//	/* Zero address */
+//	HALT = 0xBAD
+//} OpCode;
+
+#define INCR 0x10
+#define DECR 0x11
+#define UNLET 0x12
+#define PRINT 0x13
+#define LOAD 0x14
+#define STORE 0x16
+#define LET 0x17
+#define HALT 0xFF
+
 
 static char* insNames[] = {"INCR", "DECR", "UNLET", "PRINT", "LOAD", "STORE", "LET", "HALT"};
 
 /* Addressing modes */
 
-typedef enum{
-	IMMEDIATE = 0x10A,
-	REGISTER = 0x10B,
-	DIRECT = 0x10C,
-	VARIABLE = 0x10D
-} AddressingMode;
+//typedef enum{
+//	IMMEDIATE = 0x10A,
+//	REGISTER = 0x10B,
+//	DIRECT = 0x10C,
+//	VARIABLE = 0x10D
+//} AddressingMode;
+
+#define IMMEDIATE 0x20
+#define REGISTER 0x21
+#define DIRECT 0x22
+#define VARIABLE 0x23
 
 static char* modeNames[] = {"IMMEDIATE", "REGISTER", "DIRECT", "VARIABLE"};
 
@@ -50,7 +65,7 @@ static char* modeNames[] = {"IMMEDIATE", "REGISTER", "DIRECT", "VARIABLE"};
 
 typedef union{
 	uint32_t imv; // Immediate addressing
-	uint8_t rega : REG_BITS; // Register addressing
+	uint8_t rega; // Register addressing
 	uint16_t mema; // Direct addressing
 	char *name; // Variable addressing
 } Data;
@@ -58,7 +73,7 @@ typedef union{
 /* Operand types */
 
 typedef struct{
-	AddressingMode mode;
+	uint8_t mode;
 	Data data;
 } Operand;
 
@@ -83,19 +98,23 @@ typedef union{
 
 /* Instruction Format */
 
-typedef enum{
-	ZERO_ADDRESS = 0x20A,
-	ONE_ADDRESS = 0x20B,
-	TWO_ADDRESS = 0x20C
-} InstructionFormat;
+//typedef enum{
+//	ZERO_ADDRESS = 0x20A,
+//	ONE_ADDRESS = 0x20B,
+//	TWO_ADDRESS = 0x20C
+//} InstructionFormat;
+
+#define ZERO_ADDRESS 0x30
+#define ONE_ADDRESS 0x31
+#define TWO_ADDRESS 0x32
 
 static char* formatNames[] = {"ZERO_ADDRESS", "ONE_ADDRESS", "TWO_ADDRESS"};
 
 /* Instruction definition */
 
 typedef struct{
-	InstructionFormat format;
-	OpCode opcode;
+	uint8_t format;
+	uint8_t opcode;
 	Operands operands;
 } Instruction;
 
@@ -107,13 +126,18 @@ typedef struct{
 	uint16_t numIns;
 } Header;
 
-typedef enum{
-	FLEXIBLE = 0x30A, // With variable addressing
-	OPTIMISED = 0x30B// With direct addressing
-} BinaryFormat;
+//typedef enum{
+//	FLEXIBLE = 0x30A, // With variable addressing
+//	OPTIMISED = 0x30B// With direct addressing
+//} BinaryFormat;
+
+#define FLEXIBLE 0x40
+#define OPTIMISED 0x41
+
+char *binaryFormat[] = {"FLEXIBLE", "OPTIMISED"};
 
 typedef struct{
-	BinaryFormat format;
+	uint8_t format;
 	size_t instructionLength;
 	size_t expectedSize;
 } Footer;
@@ -552,12 +576,137 @@ void convertVariableToDirect(Operand* a, Machine *m){
 	}
 }
 
+void writeHeader(FILE *fp, uint16_t length){	
+	Header header = {MAGIC, VERSION, length};
+	fwrite(&header, sizeof(Header), 1, fp);
+}
+
+void writeFooter(FILE *fp, uint16_t length){	
+	Footer footer = {OPTIMISED, sizeof(Instruction), sizeof(Header)+sizeof(Instruction)*length+sizeof(Footer)};
+	fwrite(&footer, sizeof(Footer), 1, fp);
+}
+
+void writeOperand(Operand op, FILE *fp){
+	fwrite(&(op.mode), sizeof(uint8_t), 1, fp);
+	Data d = op.data;
+	switch(op.mode){
+		case IMMEDIATE: fwrite(&(d.imv), sizeof(uint32_t), 1, fp);
+				break;
+		case REGISTER: fwrite(&(d.rega), sizeof(uint8_t), 1, fp);
+			       break;
+		case DIRECT: fwrite(&(d.mema), sizeof(uint16_t), 1, fp);
+			     break;
+		case VARIABLE: break;
+	}
+}
+
+void writeOperands(Instruction i, FILE *fp){
+	switch(i.format){
+		case ZERO_ADDRESS: break;
+		case ONE_ADDRESS: writeOperand(i.operands.onea.op1, fp);
+				  break;
+		case TWO_ADDRESS: writeOperand(i.operands.twoa.op1, fp);
+				  writeOperand(i.operands.twoa.op2, fp);
+				  break;
+	}
+}
+
+void optimisedSave(Instruction *ins[], uint16_t length, Machine *m){
+	FILE *fp = fopen("instruction_opt.bin", "wb");
+	if(!fp)
+		return;
+	uint16_t i = 0;
+	writeHeader(fp, length);
+	while(i<length){
+		Instruction in = *(ins[i]);
+		switch(in.format){
+			case ZERO_ADDRESS: break;
+			case ONE_ADDRESS:
+					   convertVariableToDirect(&in.operands.onea.op1, m);
+					   break;
+			case TWO_ADDRESS:
+					   convertVariableToDirect(&in.operands.twoa.op1, m);
+					   convertVariableToDirect(&in.operands.twoa.op2, m);
+					   break;
+		}
+		fwrite(&(in.opcode), sizeof(uint8_t), 1, fp);
+		fwrite(&(in.format), sizeof(uint8_t), 1, fp);
+		writeOperands(in, fp);
+		i++;
+	}
+	writeFooter(fp, length);
+}
+
+void readOperand(Operand *op, FILE *fp){
+	fread(&(op->mode), sizeof(uint8_t), 1, fp);
+	switch(op->mode){
+		case IMMEDIATE: fread(&(op->data.imv), sizeof(uint32_t), 1, fp);
+				break;
+		case REGISTER: fread(&(op->data.rega), sizeof(uint8_t), 1, fp);
+			       break;
+		case DIRECT: fread(&(op->data.mema), sizeof(uint16_t), 1, fp);
+			     break;
+		case VARIABLE: printf("\n[LOADER:WARNING] Bad addressing mode!");
+			       break;
+	}
+}
+
+void optimisedLoad(Machine *m){
+	FILE *fp = fopen("instruction_opt.bin", "rb");
+	if(!fp)
+		return;
+	Header h;
+	fread(&h, sizeof(Header), 1, fp);
+	if(h.magic==MAGIC){
+		printf("\n[LOADER] Magic matched");
+		if(h.version==VERSION){
+			printf("\n[LOADER] Version matched\n[LOADER] Instructions : %u", h.numIns);
+
+			uint16_t i = 0;
+			Instruction ins[h.numIns];
+			while(i<h.numIns){
+				fread(&(ins[i].opcode), sizeof(uint8_t), 1, fp);
+				fread(&(ins[i].format), sizeof(uint8_t), 1, fp);
+				switch(ins[i].format){
+					case ZERO_ADDRESS: break;
+					case ONE_ADDRESS: readOperand(&(ins[i].operands.onea.op1), fp);
+							  break;
+					case TWO_ADDRESS: readOperand(&(ins[i].operands.twoa.op1), fp);
+							  readOperand(&(ins[i].operands.twoa.op2), fp);
+							  break;
+				}
+				i++;
+			}
+			Footer f;
+			fread(&f, sizeof(Footer), 1, fp);
+			//printf("\n[LOADER] Expected file size : %lu", f.expectedSize);
+			printf("\n[LOADER] Instruction length : %lu bytes", f.instructionLength);
+			if(f.instructionLength!=sizeof(Instruction)){
+				printf("\n[ERROR] Incompatible instruction format! Please update binary version in the program!");
+				return;
+			}
+			printf("\n[LOADER] Binary format : %s\n", binaryFormat[f.format-0x40]);
+			i = 0;
+			while(i<h.numIns){
+				//printIns(instructions[i]);
+				writeInstruction(m, i, ins[i]);
+				i++;
+			}
+			run(m);
+		}
+		else
+			printf("\n[ERROR] Binary version incompatible!");
+	}
+	else
+		printf("\n[ERROR] Magic not matched! This is not a valid executable file!");
+
+}
+
 void saveBinary(Instruction *ins[], uint16_t length, Machine *m){
 	FILE *fp = fopen("instruction.bin", "wb");
 	if(!fp)
 		return;
-	Header header = {MAGIC, VERSION, length};
-	fwrite(&header, sizeof(Header), 1, fp);
+	writeHeader(fp, length);
 	uint16_t i = 0;
 	while(i<length){
 		Instruction in = *(ins[i]);
@@ -574,8 +723,7 @@ void saveBinary(Instruction *ins[], uint16_t length, Machine *m){
 		fwrite(&in, sizeof(Instruction), 1, fp);
 		i++;
 	}
-	Footer footer = {OPTIMISED, sizeof(Instruction), sizeof(Header)+sizeof(Instruction)*length+sizeof(Footer)};
-	fwrite(&footer, sizeof(Footer), 1, fp);
+	writeFooter(fp, length);
 	fclose(fp);
 }
 
@@ -621,8 +769,11 @@ int main(int argc, char **argv){
 	m.symbolTable = NULL;
 	m.halt = 0;
 	m.pc = 0;
+	//printf("\nAddMode : %lu\nInsFormat : %lu", sizeof(AddressingMode), sizeof(InstructionFormat));
+	printf("\nInstruction length : %lu\n", sizeof(Instruction));
 	if(argc==2){
-		loadBinary(&m);
+		//loadBinary(&m);
+		optimisedLoad(&m);
 	}
 	else{
 		int insert = 1;
@@ -636,8 +787,8 @@ int main(int argc, char **argv){
 			size = readline(&buff);
 			token = strtok(buff, " ");
 			Instruction* is = newInstruction();
-			OpCode *op = &(is->opcode);
-			InstructionFormat *format = &(is->format);
+			uint8_t *op = &(is->opcode);
+			uint8_t *format = &(is->format);
 			Operands *os = &(is->operands);
 			//printf("\n[INPUT] [%s]",token);
 			if(strcmp(token, "let")==0){
@@ -720,7 +871,8 @@ int main(int argc, char **argv){
 		}
 
 		run(&m);
-		saveBinary(instructions, add, &m);
+		//saveBinary(instructions, add, &m);
+		optimisedSave(instructions, add, &m);
 	}
 
 	printf("\n");
