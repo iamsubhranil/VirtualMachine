@@ -463,13 +463,13 @@ char * addToBuffer(char *buffer, size_t *bufferSize, char add){
  * 			EOF or '\n' as applicable
  * Returns => The number of characters read from stdin
  */
-size_t readline(char **buffer){
+size_t readline(char **buffer, FILE *fp){
 	size_t read_size = 0; // The read counter
 	(*buffer) = (char *)malloc(sizeof(char)); // Allocate atleast one char of memory
 	char c = 1; // Temporary character to store stdin read
 
 	while(c!=EOF && c!='\n'){ // Continue until the end of line
-		c = getc(stdin); // Read a character from stdin
+		c = getc(fp); // Read a character from stdin
 		(*buffer) = addToBuffer((*buffer), &read_size, c); // Add it to the buffer
 	}
 	return read_size; // Return the amount of characters read
@@ -581,14 +581,16 @@ void writeOperands(Instruction i, FILE *fp){
 	}
 }
 
-void optimisedSave(Instruction *ins[], uint16_t length, Machine *m){
-	FILE *fp = fopen("instruction_opt.bin", "wb");
-	if(!fp)
+void optimisedSave(Instruction ins[], uint16_t length, Machine *m, char *filename){
+	FILE *fp = fopen(filename, "wb");
+	if(!fp){
+		printf("\n[ERROR] Unable to open file %s!", filename);
 		return;
+	}
 	uint16_t i = 0;
 	writeHeader(fp, length);
 	while(i<length){
-		Instruction in = *(ins[i]);
+		Instruction in = ins[i];
 		switch(in.format){
 			case ZERO_ADDRESS: break;
 			case ONE_ADDRESS:
@@ -621,10 +623,12 @@ void readOperand(Operand *op, FILE *fp){
 	}
 }
 
-void optimisedLoad(Machine *m){
-	FILE *fp = fopen("instruction_opt.bin", "rb");
-	if(!fp)
+void optimisedLoad(Machine *m, char *filename){
+	FILE *fp = fopen(filename, "rb");
+	if(!fp){
+		printf("\n[ERROR] Unable to open file %s!\n", filename);
 		return;
+	}
 	Header h;
 	fread(&(h.magic), sizeof(uint32_t), 1, fp);
 	fread(&(h.version), sizeof(uint8_t), 1, fp);
@@ -673,114 +677,196 @@ void optimisedLoad(Machine *m){
 
 }
 
+uint8_t parseInput(Machine *m, char *filename){
+	FILE *fp = stdin;
+	if(filename){
+		fp = fopen(filename, "rb");
+		if(!fp){
+			printf("\n[ERROR] Unable to read file %s!", filename);
+			return 0;
+		}
+	}
+	int insert = 1;
+	char *buff = NULL;
+	size_t size;
+	char *token;
+	uint16_t add = 0;
+	while(insert){
+		if(fp==stdin)
+			printf("\n > ");
+		size = readline(&buff, fp);
+		token = strtok(buff, " ");
+		Instruction* is = newInstruction();
+		uint8_t *op = &(is->opcode);
+		uint8_t *format = &(is->format);
+		Operands *os = &(is->operands);
+		//printf("\n[INPUT] [%s]",token);
+		if(strcmp(token, "let")==0){
+			*op = LET;
+			*format = TWO_ADDRESS;
+		}
+		else if(strcmp(token, "unlet")==0){
+			*op = UNLET;
+			*format = ONE_ADDRESS;
+		}
+		else if(strcmp(token, "incr")==0){
+			*op = INCR;
+			*format = ONE_ADDRESS;
+		}
+		else if(strcmp(token, "load")==0){
+			*op = LOAD;
+			*format = TWO_ADDRESS;
+		}
+		else if(strcmp(token, "store")==0){
+			*op = STORE;
+			*format = TWO_ADDRESS;
+		}
+		else if(strcmp(token, "decr")==0){
+			*op = DECR;
+			*format = ONE_ADDRESS;
+		}
+		else if(strcmp(token, "print")==0){
+			*op = PRINT;
+			*format = ONE_ADDRESS;
+		}
+		else if(strcmp(token, "halt\n")==0){
+			*op = HALT;
+			*format = ZERO_ADDRESS;
+			//printf("\n[HALT] Entered!");
+		}
+		switch(*format){
+			case ONE_ADDRESS:{ 
+						 token = strtok(NULL, " ");
+						 switch(*op){
+							 case UNLET: getVariableOperand(&(os->onea.op1), token);
+								     break;
+							 default: getRegisterOrVariableOperand(&(os->onea.op1), token);
+								  break;
+						 }
+						 break;
+					 }
+			case TWO_ADDRESS:{
+						 Operand *op1 = &(os->twoa.op1);
+						 Operand *op2 = &(os->twoa.op2);
+						 token = strtok(NULL, " ");
+						 switch(*op){
+							 case LET: getConstantOperand(op1, token);
+								   token = strtok(NULL, " ");
+								   getVariableOperand(op2, token);
+								   break;
+							 case LOAD: getRegisterOrVariableOperand(op1, token);
+								    token = strtok(NULL, " ");
+								    getRegisterOperand(op2, token);
+								    break;
+							 case STORE: getRegisterOperand(op1, token);
+								     token = strtok(NULL, " ");
+								     getRegisterOrVariableOperand(op2, token);
+								     break;
+							 default: printf("[ERROR] No such two address operations!");
+						 }
+						 break;
+					 }
+			case ZERO_ADDRESS:{
+						  os->zeroa.dummy = '0';
+						  break;
+					  }
+
+		}
+		writeInstruction(m, add, *is);
+		//printMem(m, add);
+		add++;
+		if(*op==HALT)
+			insert = 0;
+	}
+	return add;
+}
+
+void help(){
+	printf("\n Flags : \n \
+			--input \t-i\tSpecify an input file\n \
+			--output\t-o\tSpecify output executable\n \
+			--norun \t-n\tCompile and save, but do not run the source file (Must be used with --output)\n \
+			--run   \t-r\tRun a compiled executable\n \
+			--help  \t-h\tShow help\n \
+			Usage :\n \
+			\t1. machine [--input|-i] sourcefile\n \
+			\t2. machine [--input|-i] sourcefile [--output|-o] executable\n \
+			\t3. machine [--input|-i] sourcefile [--output|-o] executable [--norun|-n]\n \
+			\t4. machine [--run|-r] executable\n \
+			\n");
+}
+
 int main(int argc, char **argv){
 	Machine m;
 	m.symbolTable = NULL;
 	m.halt = 0;
 	m.pc = 0;
-	//printf("\nAddMode : %lu\nInsFormat : %lu", sizeof(AddressingMode), sizeof(InstructionFormat));
-	if(argc==2){
-		//loadBinary(&m);
-		optimisedLoad(&m);
-	}
-	else{
-		int insert = 1;
-		char *buff = NULL;
-		size_t size;
-		char *token;
-		uint16_t add = 0;
-		Instruction *instructions[100];
-		while(insert){
-			printf("\n > ");
-			size = readline(&buff);
-			token = strtok(buff, " ");
-			Instruction* is = newInstruction();
-			uint8_t *op = &(is->opcode);
-			uint8_t *format = &(is->format);
-			Operands *os = &(is->operands);
-			//printf("\n[INPUT] [%s]",token);
-			if(strcmp(token, "let")==0){
-				*op = LET;
-				*format = TWO_ADDRESS;
-			}
-			else if(strcmp(token, "unlet")==0){
-				*op = UNLET;
-				*format = ONE_ADDRESS;
-			}
-			else if(strcmp(token, "incr")==0){
-				*op = INCR;
-				*format = ONE_ADDRESS;
-			}
-			else if(strcmp(token, "load")==0){
-				*op = LOAD;
-				*format = TWO_ADDRESS;
-			}
-			else if(strcmp(token, "store")==0){
-				*op = STORE;
-				*format = TWO_ADDRESS;
-			}
-			else if(strcmp(token, "decr")==0){
-				*op = DECR;
-				*format = ONE_ADDRESS;
-			}
-			else if(strcmp(token, "print")==0){
-				*op = PRINT;
-				*format = ONE_ADDRESS;
-			}
-			else if(strcmp(token, "halt\n")==0){
-				*op = HALT;
-				*format = ZERO_ADDRESS;
-				//printf("\n[HALT] Entered!");
-			}
-			switch(*format){
-				case ONE_ADDRESS:{ 
-							 token = strtok(NULL, " ");
-							 switch(*op){
-								 case UNLET: getVariableOperand(&(os->onea.op1), token);
-									     break;
-								 default: getRegisterOrVariableOperand(&(os->onea.op1), token);
-									  break;
-							 }
-							 break;
-						 }
-				case TWO_ADDRESS:{
-							 Operand *op1 = &(os->twoa.op1);
-							 Operand *op2 = &(os->twoa.op2);
-							 token = strtok(NULL, " ");
-							 switch(*op){
-								 case LET: getConstantOperand(op1, token);
-									   token = strtok(NULL, " ");
-									   getVariableOperand(op2, token);
-									   break;
-								 case LOAD: getRegisterOrVariableOperand(op1, token);
-									    token = strtok(NULL, " ");
-									    getRegisterOperand(op2, token);
-									    break;
-								 case STORE: getRegisterOperand(op1, token);
-									     token = strtok(NULL, " ");
-									     getRegisterOrVariableOperand(op2, token);
-									     break;
-								 default: printf("[ERROR] No such two address operations!");
-							 }
-							 break;
-						 }
-				case ZERO_ADDRESS:{
-							  os->zeroa.dummy = '0';
-							  break;
-						  }
-
-			}
-			writeInstruction(&m, add, *is);
-			//printMem(m, add);
-			instructions[add] = is;
-			add++;
-			if(*op==HALT)
-				insert = 0;
+	char *inputFilename = NULL, *outputFilename = NULL, *executableName = NULL;
+	int r = 1;
+	int h = 0;
+	if(argc>1){
+		int i = 1;
+		for(i = 1;i<argc;i++){
+			if(strcmp(argv[i], "-i")==0 || strcmp(argv[i], "--input")==0)
+				inputFilename = argv[++i];
+			else if(strcmp(argv[i], "-o")==0 || strcmp(argv[i], "-output")==0)
+				outputFilename = argv[++i];
+			else if(strcmp(argv[i], "-r")==0 || strcmp(argv[i], "--run")==0)
+				executableName = argv[++i];
+			else if(strcmp(argv[i], "-n")==0 || strcmp(argv[i], "--norun")==0)
+				r = 0;
+			else if(strcmp(argv[i], "-h")==0 || strcmp(argv[i], "--help")==0)
+				h = 1;
+		}
+		if(h){
+			if(inputFilename || executableName || !r || outputFilename)
+				printf("\n[HELP] Ignoring additional commands!");
+			help();
+			return 0;
+		}
+		else if((argc-r)%2!=0){
+			printf("\n[ERROR] Wrong arguments.\n");
+			help();
+			return 0;
+		}
+		else if(!inputFilename && outputFilename){
+			printf("\n[ERROR] Give an input file to compile!\n");
+			return 1;
+		}
+		else if(inputFilename && executableName){
+			printf("\n[ERROR] Wrong use of '--run'. Use '--output' instead.\n");
+			return 1;
+		}
+		else if((executableName || !outputFilename) && !r){
+			printf("\n[ERROR] Wrong use of '--norun'. See '--help'.\n");
+			return 1;
+		}
+		else if(!inputFilename && !executableName){
+			printf("\n[ERROR] Wrong arguments.\n");
+			help();
+			return 0;
 		}
 
+		if(executableName)
+			optimisedLoad(&m, executableName);
+		else if(inputFilename){
+			uint16_t num = parseInput(&m, inputFilename);
+			if((num > 0) & r)
+				run(&m);
+			if((num > 0) & (outputFilename!=NULL)){
+				Instruction ins[num];
+				uint16_t j = 0;
+				while(j<num){
+					ins[j] = readInstruction(&m, j);
+					j++;
+				}
+				optimisedSave(ins, num, &m, outputFilename);
+			}	
+		}
+	}
+	else{	
+		parseInput(&m, NULL);
 		run(&m);
-		//saveBinary(instructions, add, &m);
-		optimisedSave(instructions, add, &m);
 	}
 
 	printf("\n");
