@@ -780,7 +780,7 @@ void optimisedLoad(Machine *m, char *filename){
 
 }
 
-uint8_t parseInput(Machine *m, char *filename){
+uint16_t parseInput(Machine *m, char *filename){
 	FILE *fp = stdin;
 	if(filename){
 		fp = fopen(filename, "rb");
