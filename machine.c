@@ -382,8 +382,17 @@ void execute(Machine *m, Instruction ins){
 		case HALT: //printf("\nHALTING REQUIRED!");
 			    m->halt = 1;
 			    break;
-		case UNLET: deallocate(m, d1.name);
-			    break;
+		case UNLET:{ 
+				   switch(op1.mode){
+					   case IMMEDIATE: break;
+					   case REGISTER: break;
+					   case VARIABLE: deallocate(m, d1.name);
+							  break;
+					   case DIRECT: writeData(m, d1.mema, 0);
+							break;
+				   }
+				   break;
+			   }
 		case PRINT:{ 
 				   switch(op1.mode){
 					   case IMMEDIATE: printf("%u", d1.imv);
@@ -555,12 +564,12 @@ void saveBinary(Instruction *ins[], uint16_t length, Machine *m){
 		switch(in.format){
 			case ZERO_ADDRESS: break;
 			case ONE_ADDRESS:
-				convertVariableToDirect(&in.operands.onea.op1, m);
-				break;
+					   convertVariableToDirect(&in.operands.onea.op1, m);
+					   break;
 			case TWO_ADDRESS:
-				convertVariableToDirect(&in.operands.twoa.op1, m);
-				convertVariableToDirect(&in.operands.twoa.op2, m);
-				break;
+					   convertVariableToDirect(&in.operands.twoa.op1, m);
+					   convertVariableToDirect(&in.operands.twoa.op2, m);
+					   break;
 		}
 		fwrite(&in, sizeof(Instruction), 1, fp);
 		i++;
