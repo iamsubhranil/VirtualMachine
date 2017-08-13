@@ -131,7 +131,7 @@ typedef union{
 } CellData;
 
 typedef struct{
-	unsigned short acquired : 1;
+	uint8_t acquired : 1;
 	CellType type;
 	CellData data;
 } Cell;
@@ -140,7 +140,7 @@ typedef struct{
 	uint32_t registers[NUM_REG]; // GPRs
 	uint16_t pc; // Program counter, initially will point to the first instruction location
 	Cell memory[NUM_MEM]; // Memory will store both data and instruction
-	unsigned short halt : 1;
+	uint8_t halt : 1;
 	uint16_t occupiedAddress;
 	SymbolTable *symbolTable;
 } Machine;
