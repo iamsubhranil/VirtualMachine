@@ -670,68 +670,6 @@ void optimisedLoad(Machine *m){
 
 }
 
-void saveBinary(Instruction *ins[], uint16_t length, Machine *m){
-	FILE *fp = fopen("instruction.bin", "wb");
-	if(!fp)
-		return;
-	writeHeader(fp, length);
-	uint16_t i = 0;
-	while(i<length){
-		Instruction in = *(ins[i]);
-		switch(in.format){
-			case ZERO_ADDRESS: break;
-			case ONE_ADDRESS:
-					   convertVariableToDirect(&in.operands.onea.op1, m);
-					   break;
-			case TWO_ADDRESS:
-					   convertVariableToDirect(&in.operands.twoa.op1, m);
-					   convertVariableToDirect(&in.operands.twoa.op2, m);
-					   break;
-		}
-		fwrite(&in, sizeof(Instruction), 1, fp);
-		i++;
-	}
-	writeFooter(fp, length);
-	fclose(fp);
-}
-
-void loadBinary(Machine *m){
-	FILE *fp = fopen("instruction.bin", "rb");
-	if(!fp)
-		return;
-	Header h;
-	fread(&h, sizeof(Header), 1, fp);
-	if(h.magic==MAGIC){
-		printf("\n[LOADER] Magic matched");
-		if(h.version==VERSION){
-			printf("\n[LOADER] Version matched\n[LOADER] Instructions : %u", h.numIns);
-
-			Instruction instructions[h.numIns];
-			fread(instructions, sizeof(Instruction), h.numIns, fp);
-			Footer f;
-			fread(&f, sizeof(Footer), 1, fp);
-			printf("\n[LOADER] Expected file size : %lu", f.expectedSize);
-			printf("\n[LOADER] Instruction length : %lu bytes", f.instructionLength);
-			if(f.instructionLength!=sizeof(Instruction)){
-				printf("\n[ERROR] Incompatible instruction format! Please update binary version in the program!");
-				return;
-			}
-			printf("\n[LOADER] Binary format : %d\n", (int)f.format);
-			uint16_t i = 0;
-			while(i<h.numIns){
-				//printIns(instructions[i]);
-				writeInstruction(m, i, instructions[i]);
-				i++;
-			}
-			run(m);
-		}
-		else
-			printf("\n[ERROR] Binary version incompatible!");
-	}
-	else
-		printf("\n[ERROR] Magic not matched! This is not a valid executable file!");
-}
-
 int main(int argc, char **argv){
 	Machine m;
 	m.symbolTable = NULL;
