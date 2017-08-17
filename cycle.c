@@ -49,9 +49,11 @@ void run(Machine *m){
 	while(!m->halt){
 		//printf("\n[MACHINE] Running!");
 		Cell cell = fetch(m);
+		uint16_t backup = m->pc;
 		Instruction ins = decode(cell);
 		execute(m, ins);
-		m->pc++;
+		if(m->pc==backup)
+			m->pc++;
 	}
 }
 
