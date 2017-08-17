@@ -89,7 +89,7 @@ static void checkOperand(Operand op, uint8_t operation, int opnum, int *insert){
 			   break;
 		case UNLET: *insert = (op.mode==VARIABLE || op.mode==DIRECT);
 			    break;
-		case LET: *insert = (opnum==1) || (opnum==2 && (op.mode==VARIABLE || op.mode==DIRECT));
+		case LET: *insert = (opnum==1 && op.mode!=REGISTER) || (opnum==2 && (op.mode==VARIABLE || op.mode==DIRECT));
 			  break;
 		case ADD:
 		case SUB:
