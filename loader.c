@@ -45,6 +45,10 @@ void loadBinary(Machine *m, char *filename){
 					case TWO_ADDRESS: readOperand(&(ins[i].operands.twoa.op1), fp);
 							  readOperand(&(ins[i].operands.twoa.op2), fp);
 							  break;
+					case THREE_ADDRESS: readOperand(&(ins[i].operands.threa.op1), fp);
+							    readOperand(&(ins[i].operands.threa.op2), fp);
+							    readOperand(&(ins[i].operands.threa.op3), fp);
+							    break;
 				}
 				i++;
 			}

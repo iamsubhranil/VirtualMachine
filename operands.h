@@ -40,10 +40,17 @@ typedef struct{
 	Operand op2;
 } TwoAddress;
 
+typedef struct{
+	Operand op1;
+	Operand op2;
+	Operand op3;
+} ThreeAddress;
+
 typedef union{
 	ZeroAddress zeroa;
 	OneAddress onea;
 	TwoAddress twoa;
+	ThreeAddress threa;
 } Operands;
 
 #endif

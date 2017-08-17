@@ -43,6 +43,10 @@ static void writeOperands(Instruction i, FILE *fp){
 		case TWO_ADDRESS: writeOperand(i.operands.twoa.op1, fp);
 				  writeOperand(i.operands.twoa.op2, fp);
 				  break;
+		case THREE_ADDRESS: writeOperand(i.operands.threa.op1, fp);
+				    writeOperand(i.operands.threa.op2, fp);
+				    writeOperand(i.operands.threa.op3, fp);
+				    break;
 	}
 }
 
@@ -64,6 +68,11 @@ void writeBinary(Instruction ins[], uint16_t length, Machine *m, char *filename)
 			case TWO_ADDRESS:
 					   convertVariableToDirect(&in.operands.twoa.op1, m);
 					   convertVariableToDirect(&in.operands.twoa.op2, m);
+					   break;
+			case THREE_ADDRESS:
+					   convertVariableToDirect(&in.operands.threa.op1, m);
+					   convertVariableToDirect(&in.operands.threa.op2, m);
+					   convertVariableToDirect(&in.operands.threa.op3, m);
 					   break;
 		}
 		fwrite(&(in.opcode), sizeof(uint8_t), 1, fp);
