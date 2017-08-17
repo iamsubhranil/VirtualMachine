@@ -68,11 +68,14 @@ void loadBinary(Machine *m, char *filename, int *check){
 				i++;
 			}
 		}
-		else
+		else{
 			printf("\n[ERROR] Binary version incompatible!");
+			*check = 0;
+		}
 	}
-	else
+	else{
 		printf("\n[ERROR] Magic not matched! This is not a valid executable file!");
-	
+		*check = 0;
+	}
 	fclose(fp);
 }
