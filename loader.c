@@ -18,10 +18,11 @@ static void readOperand(Operand *op, FILE *fp){
 	}
 }
 
-void loadBinary(Machine *m, char *filename){
+void loadBinary(Machine *m, char *filename, int *check){
 	FILE *fp = fopen(filename, "rb");
 	if(!fp){
 		printf("\n[ERROR] Unable to open file %s!\n", filename);
+		*check = 0;
 		return;
 	}
 	Header h;

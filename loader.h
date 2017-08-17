@@ -2,6 +2,6 @@
 #define LOADER_H
 
 #include"machine.h"
-void loadBinary(Machine *m, char *fileName);
+void loadBinary(Machine *m, char *fileName, int *check);
 
 #endif

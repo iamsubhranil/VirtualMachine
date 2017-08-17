@@ -79,8 +79,9 @@ int main(int argc, char **argv){
 		}
 
 		if(executableName){
-			loadBinary(&m, executableName);
-			run(&m);
+			loadBinary(&m, executableName, &check);
+			if(check)
+				run(&m);
 		}
 		else if(inputFilename || outputFilename){
 			uint16_t num = parseInput(&m, inputFilename, &check);
