@@ -125,6 +125,7 @@ void print(Machine *m, Operands op){
 		case VARIABLE: printf("%u", readData(m, getAddress(m, d1.name)));
 			       break;
 	}
+	printf("\n");
 }
 
 static uint32_t getVal(Operand o, Machine *m){
