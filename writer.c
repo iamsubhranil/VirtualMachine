@@ -72,4 +72,5 @@ void writeBinary(Instruction ins[], uint16_t length, Machine *m, char *filename)
 		i++;
 	}
 	writeFooter(fp);
+	fclose(fp);
 }

@@ -68,4 +68,6 @@ void loadBinary(Machine *m, char *filename){
 	}
 	else
 		printf("\n[ERROR] Magic not matched! This is not a valid executable file!");
+	
+	fclose(fp);
 }
