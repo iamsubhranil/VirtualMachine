@@ -103,6 +103,7 @@ static void checkOperand(Operand op, uint8_t operation, int opnum, int *insert){
 			    break;
 		case PRINT: *insert = op.mode==VARIABLE || op.mode==DIRECT || op.mode==REGISTER;
 			    break;
+		case SETL: *insert = op.mode==VARIABLE || op.mode==DIRECT;
 	}
 	if(*insert==0)
 		printf("\n[PARSER:ERROR] Bad addressing mode %s for operand %d for instruction %s!", modeNames[op.mode - 0x20],
@@ -185,6 +186,10 @@ uint16_t parseInput(Machine *m, char *filename, int *check){
 		else if(strcmp(token, "div")==0){
 			*op = DIV;
 			*format = TWO_ADDRESS;
+		}
+		else if(strcmp(token, "setl")==0){
+			*op = SETL;
+			*format = ONE_ADDRESS;
 		}
 		else{
 			printf("\n[ERROR] Unknown operation %s", token);

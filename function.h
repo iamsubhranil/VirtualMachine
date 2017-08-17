@@ -20,7 +20,8 @@ void add(Machine *m, Operands op);
 void sub(Machine *m, Operands op);
 void mul(Machine *m, Operands op);
 void div(Machine *m, Operands op);
+void setl(Machine *m, Operands op);
 
-static function func[] = {incr, decr, unlet, print, load, store, let, halt, add, sub, mul, div};
+static function func[] = {incr, decr, unlet, print, load, store, let, halt, add, sub, mul, div, setl};
 
 #endif

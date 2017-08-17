@@ -15,5 +15,6 @@
 #define SUB 0x19
 #define MUL 0x1A
 #define DIV 0x1B
+#define SETL 0x1C
 
 #endif

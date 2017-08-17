@@ -209,3 +209,16 @@ void div(Machine *m, Operands op){
 			       break;
 	}
 }
+
+void setl(Machine *m, Operands op){
+	Operand op1 = op.onea.op1;
+	switch(op1.mode){
+		case DIRECT: writeData(m, op1.data.mema, m->pc+1);
+			     break;
+		case VARIABLE:{ 
+				      uint16_t ad = getAddress(m, op1.data.name);
+				      writeData(m, ad, m->pc+1);
+			      }
+			      break;
+	}
+}
