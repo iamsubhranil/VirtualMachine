@@ -222,3 +222,39 @@ void setl(Machine *m, Operands op){
 			      break;
 	}
 }
+
+static uint16_t jmpAddress(Machine *m, Operand label){
+	uint16_t address;
+	switch(label.mode){
+		case VARIABLE: address = getAddress(m, label.data.name);
+			       address = readData(m, address);
+			       break;
+		case DIRECT: address = readData(m, label.data.mema);
+			     break;
+	}
+	return address;
+}
+
+void jne(Machine *m, Operands op){
+	uint16_t address = jmpAddress(m, op.threa.op1);
+	Operand source = op.threa.op2;
+	Operand dest = op.threa.op3;
+	if(getVal(source, m)!=getVal(dest, m))
+		m->pc = address;
+}
+
+void jlt(Machine *m, Operands op){
+	uint16_t address = jmpAddress(m, op.threa.op1);
+	Operand source = op.threa.op2;
+	Operand dest = op.threa.op3;
+	if(getVal(source, m)<getVal(dest, m))
+		m->pc = address;
+}
+
+void jgt(Machine *m, Operands op){
+	uint16_t address = jmpAddress(m, op.threa.op1);
+	Operand source = op.threa.op2;
+	Operand dest = op.threa.op3;
+	if(getVal(source, m)>getVal(dest, m))
+		m->pc = address;
+}

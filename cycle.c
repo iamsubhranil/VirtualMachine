@@ -24,7 +24,8 @@ static uint32_t getVal(Operand o, Machine *m){
 static void execute(Machine *m, Instruction ins){
 	if((ins.opcode-0x10)>NUMFUNCS)
 		printf("\n[ERROR] Undefined opcode %u!", ins.opcode);
-	func[ins.opcode-0x10](m, ins.operands);
+	else
+		func[ins.opcode-0x10](m, ins.operands);
 }
 
 static Instruction decode(Cell cell){

@@ -16,5 +16,8 @@
 #define MUL 0x1A
 #define DIV 0x1B
 #define SETL 0x1C
+#define JNE 0x1D
+#define JLT 0x1E
+#define JGT 0x1F
 
 #endif

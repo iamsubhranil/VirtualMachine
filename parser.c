@@ -104,6 +104,14 @@ static void checkOperand(Operand op, uint8_t operation, int opnum, int *insert){
 		case PRINT: *insert = op.mode==VARIABLE || op.mode==DIRECT || op.mode==REGISTER;
 			    break;
 		case SETL: *insert = op.mode==VARIABLE || op.mode==DIRECT;
+			   break;
+		case JNE:
+		case JLT:
+		case JGT:
+			   *insert = (opnum==1 && (op.mode==VARIABLE || op.mode==DIRECT))
+				   || (opnum==2 && (op.mode==VARIABLE || op.mode==DIRECT || op.mode==REGISTER))
+				   || (opnum==3);
+			   break;
 	}
 	if(*insert==0)
 		printf("\n[PARSER:ERROR] Bad addressing mode %s for operand %d for instruction %s!", modeNames[op.mode - 0x20],
@@ -191,6 +199,18 @@ uint16_t parseInput(Machine *m, char *filename, int *check){
 			*op = SETL;
 			*format = ONE_ADDRESS;
 		}
+		else if(strcmp(token, "jlt")==0){
+			*op = JLT;
+			*format = THREE_ADDRESS;
+		}
+		else if(strcmp(token, "jgt")==0){
+			*op = JGT;
+			*format = THREE_ADDRESS;
+		}
+		else if(strcmp(token, "jne")==0){
+			*op = JNE;
+			*format = THREE_ADDRESS;
+		}
 		else{
 			printf("\n[ERROR] Unknown operation %s", token);
 			free(is);
@@ -216,6 +236,25 @@ uint16_t parseInput(Machine *m, char *filename, int *check){
 						 *check = insert;
 						 break;
 					 }
+			case THREE_ADDRESS:{
+					   	Operand *op1 = &(os->threa.op1);
+						Operand *op2 = &(os->threa.op2);
+						Operand *op3 = &(os->threa.op3);
+
+						token = strtok(NULL, " ");
+						getOperand(op1, token, &insert);
+						checkOperand(*op1, *op, 1, &insert);
+
+						token = strtok(NULL, " ");
+						getOperand(op2, token, &insert);
+						checkOperand(*op2, *op, 2, &insert);
+
+						token = strtok(NULL, " ");
+						getOperand(op3, token, &insert);
+						checkOperand(*op3, *op, 3, &insert);
+
+						break;
+					   }
 			case ZERO_ADDRESS:{
 						  os->zeroa.dummy = '0';
 						  break;

@@ -6,7 +6,7 @@
 
 typedef void (*function)(Machine *m, Operands op);
 
-#define NUMFUNCS 12 // Update this counter whenever a new function is a added
+#define NUMFUNCS 16 // Update this counter whenever a new function is a added
 
 void incr(Machine *m, Operands op);
 void decr(Machine *m, Operands op);
@@ -21,7 +21,10 @@ void sub(Machine *m, Operands op);
 void mul(Machine *m, Operands op);
 void div(Machine *m, Operands op);
 void setl(Machine *m, Operands op);
+void jne(Machine *m, Operands op);
+void jlt(Machine *m, Operands op);
+void jgt(Machine *m, Operands op);
 
-static function func[] = {incr, decr, unlet, print, load, store, let, halt, add, sub, mul, div, setl};
+static function func[] = {incr, decr, unlet, print, load, store, let, halt, add, sub, mul, div, setl, jne, jlt, jgt};
 
 #endif
