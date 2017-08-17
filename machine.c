@@ -503,6 +503,9 @@ void run(Machine *m){
 }
 
 
+/* Parser */
+/*========*/
+
 /*
  * Adds the given character to the buffer. Since it modifies
  * the buffer itself, it returns the pointer in any case.
@@ -547,12 +550,6 @@ size_t readline(char **buffer, FILE *fp){
 	return read_size; // Return the amount of characters read
 }
 
-void getConstantOperand(Operand *op, char *val){
-	Data d = { .imv = (uint32_t)atoi(val)};
-	op->mode = IMMEDIATE;
-	op->data = d;
-}
-
 char *stripFirst(char *val){
 	char *buffer = NULL;
 	size_t len = strlen(val);
@@ -567,60 +564,236 @@ char *stripFirst(char *val){
 	return buffer;
 }
 
-void getRegisterOperand(Operand *op, char *val){
-	char *buffer = stripFirst(val);
-	uint8_t regNo = (uint8_t)atoi(buffer);
-	Data d = {.rega = regNo};
-	op->mode = REGISTER;
-	op->data = d;
-	free(buffer);
-}
-
-void getVariableOperand(Operand *op, char *val){
-	char *nam = strdup(val);
-	if(nam[strlen(nam)-1]!='\0') {
-		if(nam[strlen(nam)-1]=='\r') // Windows
-			nam[strlen(nam)-1] = '\0';
-		else {
-			size_t sz = strlen(nam);
-			nam = addToBuffer(nam, &sz, '\0');
-		}
-	}
-	Data d = {.name = nam};
-	op->mode = VARIABLE;
-	op->data = d;
-}
-
-void getDirectOperand(Operand *op, char *val){
-	char *buffer = stripFirst(val);
-	uint16_t mem = (uint16_t)atoi(buffer);
-	Data d = {.mema = mem};
-	op->mode = DIRECT;
-	op->data = d;
-	free(buffer);
-}
-
-void getRegisterOrVariableOperand(Operand *op, char *val){
-	if(val[0]=='R' || val[0]=='r')
-		getRegisterOperand(op, val);
-	else
-		getVariableOperand(op, val);
+int alpha(char c){
+	return (c>='a' && c<='z') || (c>='A' && c<='Z');
 }
 
 int digit(char c){
-	return c>='0' && c<='9';
+	return (c>='0' && c<='9');
 }
 
-void getOperand(Operand *op, char *val){
-	if(digit(val[0]))
-		return getConstantOperand(op, val);
-	else
-		return getRegisterOrVariableOperand(op, val);
+int aldigit(char c){
+	return alpha(c) || digit(c);
+}
+
+int checkVariableName(char *val){
+	if(!alpha(val[0]))
+		return 0;
+	int i = 1;
+	int last = strlen(val);
+	while(i<last){
+		if(!(aldigit(val[i]) || val[i]=='_'))
+			return 0;
+		i++;
+	}
+	return 1;
+}
+
+void getOperand(Operand *op, char *val, int *insert){
+	if(!*insert)
+		return;
+	uint8_t addressingMode = 0;
+	if(val[0]=='@')
+		addressingMode = DIRECT;
+	else if(val[0]=='#')
+		addressingMode = IMMEDIATE;
+	else if(val[0]=='R' || val[0]=='r')
+		addressingMode = REGISTER;
+	else if(val[0]=='_')
+		addressingMode = VARIABLE;
+	else{
+		printf("\n[PARSER:ERROR] Unknown addressing mode for operand %s!", val);
+		*insert = 0;
+		return;
+	}
+	val = stripFirst(val);
+	char *rem;
+	switch(addressingMode){
+		case VARIABLE: if(checkVariableName(val))
+				       op->data.name = strdup(val);
+			       else{
+			       		printf("\n[PARSER:ERROR] Bad variable name %s!", val);
+					*insert = 0;
+			       }
+			       break;
+		case DIRECT:
+			   op->data.mema = strtoll(val, &rem, 10);
+			   if(strlen(rem)){
+				   printf("\n[PARSER:ERROR] Direct addressing contains invalid part : %s", rem);
+				   *insert = 0;
+			   }
+			   break;
+		case IMMEDIATE: 
+				op->data.imv = strtoll(val, &rem, 10);
+				if(strlen(rem)){
+					printf("\n[PARSER:ERROR] Bad immediate value : %s", val);
+					*insert = 0;
+				}
+				break;
+		case REGISTER: 
+			       op->data.rega = strtoll(val, &rem, 10);
+			       if(strlen(rem)){
+				       printf("\n[PARSER:ERROR] Bad register address : %s", val);
+			       		*insert = 0;
+			       }
+			       break;
+		default: printf("\n[PARSER:ERROR] Unknown addressing mode : %s", val);
+			 *insert = 0;
+			 break;
+	}
+	op->mode = addressingMode;
+}
+
+void checkOperand(Operand op, uint8_t operation, int opnum, int *insert){
+	if(*insert==0)
+		return;
+	switch(operation){
+		case INCR:
+		case DECR:	
+			*insert = (op.mode==VARIABLE || op.mode==REGISTER || op.mode == DIRECT);
+			   break;
+		case UNLET: *insert = (op.mode==VARIABLE || op.mode==DIRECT);
+			    break;
+		case LET: *insert = (opnum==1) || (opnum==2 && (op.mode==VARIABLE || op.mode==DIRECT));
+			  break;
+		case ADD:
+		case SUB:
+		case MUL:
+		case DIV:
+			  *insert = (opnum==1) || (opnum==2 && (op.mode==VARIABLE || op.mode==REGISTER || op.mode==DIRECT));
+			  break;
+		case LOAD: *insert = (opnum==1 && (op.mode==VARIABLE || op.mode==DIRECT)) || (opnum==2 && op.mode==REGISTER);
+			   break;
+		case STORE: *insert = (opnum==1 && op.mode==REGISTER) || (opnum==2 && (op.mode==VARIABLE || op.mode==DIRECT));
+			    break;
+		case PRINT: *insert = op.mode==VARIABLE || op.mode==DIRECT || op.mode==REGISTER;
+			    break;
+	}
+	if(*insert==0)
+		printf("\n[PARSER:ERROR] Bad addressing mode %s for operand %d for instruction %s!", modeNames[op.mode - 0x20],
+				opnum, insNames[operation - 0x10]);
 }
 
 Instruction * newInstruction(){
 	return (Instruction *)malloc(sizeof(Instruction));
 }
+
+uint16_t parseInput(Machine *m, char *filename, int *check){
+	FILE *fp = stdin;
+	if(filename){
+		fp = fopen(filename, "rb");
+		if(!fp){
+			printf("\n[ERROR] Unable to read file %s!", filename);
+			return 0;
+		}
+	}
+	int insert = 1;
+	char *buff = NULL;
+	size_t size;
+	char *token;
+	uint16_t add = 0;
+	while(insert){
+		if(fp==stdin)
+			printf("\n > ");
+		size = readline(&buff, fp);
+		token = strtok(buff, " ");
+		Instruction* is = newInstruction();
+		uint8_t *op = &(is->opcode);
+		uint8_t *format = &(is->format);
+		Operands *os = &(is->operands);
+		//printf("\n[INPUT] [%s]",token);
+		if(strcmp(token, "let")==0){
+			*op = LET;
+			*format = TWO_ADDRESS;
+		}
+		else if(strcmp(token, "unlet")==0){
+			*op = UNLET;
+			*format = ONE_ADDRESS;
+		}
+		else if(strcmp(token, "incr")==0){
+			*op = INCR;
+			*format = ONE_ADDRESS;
+		}
+		else if(strcmp(token, "load")==0){
+			*op = LOAD;
+			*format = TWO_ADDRESS;
+		}
+		else if(strcmp(token, "store")==0){
+			*op = STORE;
+			*format = TWO_ADDRESS;
+		}
+		else if(strcmp(token, "decr")==0){
+			*op = DECR;
+			*format = ONE_ADDRESS;
+		}
+		else if(strcmp(token, "print")==0){
+			*op = PRINT;
+			*format = ONE_ADDRESS;
+		}
+		else if(strcmp(token, "halt")==0){
+			*op = HALT;
+			*format = ZERO_ADDRESS;
+			//printf("\n[HALT] Entered!");
+		}
+		else if(strcmp(token, "add")==0){
+			*op = ADD;
+			*format = TWO_ADDRESS;
+		}
+		else if(strcmp(token, "sub")==0){
+			*op = SUB;
+			*format = TWO_ADDRESS;
+		}
+		else if(strcmp(token, "mul")==0){
+			*op = MUL;
+			*format = TWO_ADDRESS;
+		}
+		else if(strcmp(token, "div")==0){
+			*op = DIV;
+			*format = TWO_ADDRESS;
+		}
+		else{
+			printf("\n[ERROR] Unknown operation %s", token);
+			free(is);
+			continue;
+		}
+		switch(*format){
+			case ONE_ADDRESS:{ 
+						 token = strtok(NULL, " ");
+						 getOperand(&(os->onea.op1), token, &insert);
+						 checkOperand(os->onea.op1, *op, 1, &insert);
+						 *check = insert;
+						 break;
+					 }
+			case TWO_ADDRESS:{
+						 Operand *op1 = &(os->twoa.op1);
+						 Operand *op2 = &(os->twoa.op2);
+						 token = strtok(NULL, " ");
+						 getOperand(op1, token, &insert);
+						 checkOperand(*op1, *op, 1, &insert);
+						 token = strtok(NULL, " ");
+						 getOperand(op2, token, &insert);
+						 checkOperand(*op2, *op, 2, &insert);
+						 *check = insert;
+						 break;
+					 }
+			case ZERO_ADDRESS:{
+						  os->zeroa.dummy = '0';
+						  break;
+					  }
+
+		}
+		writeInstruction(m, add, *is);
+		//printMem(m, add);
+		add++;
+		if(*op==HALT)
+			insert = 0;
+	}
+	return add;
+}
+
+
+/* Loader and writer */
+/*===================*/
 
 void convertVariableToDirect(Operand* a, Machine *m){
 	if(a->mode==VARIABLE){
@@ -759,142 +932,10 @@ void optimisedLoad(Machine *m, char *filename){
 	}
 	else
 		printf("\n[ERROR] Magic not matched! This is not a valid executable file!");
-
 }
 
-uint16_t parseInput(Machine *m, char *filename){
-	FILE *fp = stdin;
-	if(filename){
-		fp = fopen(filename, "rb");
-		if(!fp){
-			printf("\n[ERROR] Unable to read file %s!", filename);
-			return 0;
-		}
-	}
-	int insert = 1;
-	char *buff = NULL;
-	size_t size;
-	char *token;
-	uint16_t add = 0;
-	while(insert){
-		if(fp==stdin)
-			printf("\n > ");
-		size = readline(&buff, fp);
-		token = strtok(buff, " ");
-		Instruction* is = newInstruction();
-		uint8_t *op = &(is->opcode);
-		uint8_t *format = &(is->format);
-		Operands *os = &(is->operands);
-		//printf("\n[INPUT] [%s]",token);
-		if(strcmp(token, "let")==0){
-			*op = LET;
-			*format = TWO_ADDRESS;
-		}
-		else if(strcmp(token, "unlet")==0){
-			*op = UNLET;
-			*format = ONE_ADDRESS;
-		}
-		else if(strcmp(token, "incr")==0){
-			*op = INCR;
-			*format = ONE_ADDRESS;
-		}
-		else if(strcmp(token, "load")==0){
-			*op = LOAD;
-			*format = TWO_ADDRESS;
-		}
-		else if(strcmp(token, "store")==0){
-			*op = STORE;
-			*format = TWO_ADDRESS;
-		}
-		else if(strcmp(token, "decr")==0){
-			*op = DECR;
-			*format = ONE_ADDRESS;
-		}
-		else if(strcmp(token, "print")==0){
-			*op = PRINT;
-			*format = ONE_ADDRESS;
-		}
-		else if(strcmp(token, "halt")==0){
-			*op = HALT;
-			*format = ZERO_ADDRESS;
-			//printf("\n[HALT] Entered!");
-		}
-		else if(strcmp(token, "add")==0){
-			*op = ADD;
-			*format = TWO_ADDRESS;
-		}
-		else if(strcmp(token, "sub")==0){
-			*op = SUB;
-			*format = TWO_ADDRESS;
-		}
-		else if(strcmp(token, "mul")==0){
-			*op = MUL;
-			*format = TWO_ADDRESS;
-		}
-		else if(strcmp(token, "div")==0){
-			*op = DIV;
-			*format = TWO_ADDRESS;
-		}
-		else{
-			printf("\n[ERROR] Unknown operation %s", token);
-			free(is);
-			continue;
-		}
-		switch(*format){
-			case ONE_ADDRESS:{ 
-						 token = strtok(NULL, " ");
-						 switch(*op){
-							 case UNLET: getVariableOperand(&(os->onea.op1), token);
-								     break;
-							 default: getRegisterOrVariableOperand(&(os->onea.op1), token);
-								  break;
-						 }
-						 break;
-					 }
-			case TWO_ADDRESS:{
-						 Operand *op1 = &(os->twoa.op1);
-						 Operand *op2 = &(os->twoa.op2);
-						 token = strtok(NULL, " ");
-						 switch(*op){
-							 case LET: getConstantOperand(op1, token);
-								   token = strtok(NULL, " ");
-								   getVariableOperand(op2, token);
-								   break;
-							 case LOAD: getRegisterOrVariableOperand(op1, token);
-								    token = strtok(NULL, " ");
-								    getRegisterOperand(op2, token);
-								    break;
-							 case STORE: getRegisterOperand(op1, token);
-								     token = strtok(NULL, " ");
-								     getRegisterOrVariableOperand(op2, token);
-								     break;
-							 case ADD: 
-							 case SUB:
-							 case MUL:
-							 case DIV:
-								   getOperand(op1, token);
-								   token = strtok(NULL, " ");
-								   getRegisterOrVariableOperand(op2, token);
-								   break;
-							 default: printf("[ERROR] No such two address operations!");
-								  break;
-						 }
-						 break;
-					 }
-			case ZERO_ADDRESS:{
-						  os->zeroa.dummy = '0';
-						  break;
-					  }
-
-		}
-		writeInstruction(m, add, *is);
-		//printMem(m, add);
-		add++;
-		if(*op==HALT)
-			insert = 0;
-	}
-	return add;
-}
+/* Help */
+/*======*/
 
 void help(){
 	printf("\n Flags : \n \
@@ -912,6 +953,9 @@ void help(){
 			\n");
 }
 
+/* Driver */
+/*========*/
+
 int main(int argc, char **argv){
 	Machine m;
 	m.symbolTable = NULL;
@@ -920,6 +964,7 @@ int main(int argc, char **argv){
 	char *inputFilename = NULL, *outputFilename = NULL, *executableName = NULL;
 	int r = 1;
 	int h = 0;
+	int check = 1;
 	if(argc>1){
 		int i = 1;
 		for(i = 1;i<argc;i++){
@@ -962,10 +1007,10 @@ int main(int argc, char **argv){
 		if(executableName)
 			optimisedLoad(&m, executableName);
 		else if(inputFilename || outputFilename){
-			uint16_t num = parseInput(&m, inputFilename);
-			if((num > 0) & r)
+			uint16_t num = parseInput(&m, inputFilename, &check);
+			if((num > 0) & r & check)
 				run(&m);
-			if((num > 0) & (outputFilename!=NULL)){
+			if((num > 0) & (outputFilename!=NULL) & check){
 				Instruction ins[num];
 				uint16_t j = 0;
 				while(j<num){
@@ -977,8 +1022,9 @@ int main(int argc, char **argv){
 		}
 	}
 	else{	
-		parseInput(&m, NULL);
-		run(&m);
+		parseInput(&m, NULL, &check);
+		if(check)
+			run(&m);
 	}
 
 	printf("\n");
