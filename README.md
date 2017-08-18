@@ -51,7 +51,7 @@ There are presently 16 operations available to the machine.
 13. setl : Sets a label to the next instruction, to be used with jump calls.
 
             setl _test
-            incr _a
+            incr _a // test points here
 14. jne : Jump to a label if arg2 is not equal to arg3. Arg2 should not be a constant. Arg3 can be a constant however.
 
             jne _test _a 20 // Jump to _test if value stored at _a is not equal to 20
