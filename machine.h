@@ -46,7 +46,6 @@ void writeData(Machine *m, uint16_t add, uint32_t val);
 void writeInstruction(Machine *m, uint16_t add, Instruction ins);
 uint32_t readData(Machine *m, uint16_t add);
 Instruction readInstruction(Machine *m, uint16_t add);
-uint16_t memallocate(Machine *m, char *symbol);
 uint16_t getAddress(Machine *m, char *symbol);
 void deallocate(Machine *m, char *symbol);
 

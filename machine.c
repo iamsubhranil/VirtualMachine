@@ -1,9 +1,9 @@
 #include<stdint.h>
-#include"instruction.h"
-#include"machine.h"
 #include<stdlib.h>
 #include<stdio.h>
 #include<string.h>
+
+#include"machine.h"
 
 void writeData(Machine *m, uint16_t add, uint32_t val){
 	m->memory[add].acquired = 1;
@@ -34,7 +34,7 @@ static uint16_t getFirstFree(Machine m){
 	return add;
 }
 
-uint16_t memallocate(Machine *m, char *symbol){
+static uint16_t memallocate(Machine *m, char *symbol){
 	uint16_t allocationAddress = getFirstFree(*m);
 	//printf("\n[MEMALLOCATE] Allocating memory for %s at address %u\n", symbol, allocationAddress);
 	SymbolTable *newSymbol = (SymbolTable *)malloc(sizeof(SymbolTable));
