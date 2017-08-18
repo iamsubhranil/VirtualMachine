@@ -276,6 +276,8 @@ static uint16_t jmpAddress(Machine *m, Operand label) {
             address = readData(m, label.data.mema);
             break;
     }
+    if(address==0)
+	    printf("\n[JUMP:WARNING] Trying to jump to undefined label!");
     return address;
 }
 
@@ -283,7 +285,7 @@ void jne(Machine *m, Operands op) {
     uint16_t address = jmpAddress(m, op.threa.op1);
     Operand source = op.threa.op2;
     Operand dest = op.threa.op3;
-    if (getVal(source, m) != getVal(dest, m))
+    if (getVal(source, m) != getVal(dest, m) && address!=0)
         m->pc = address;
 }
 
@@ -291,7 +293,7 @@ void jlt(Machine *m, Operands op) {
     uint16_t address = jmpAddress(m, op.threa.op1);
     Operand source = op.threa.op2;
     Operand dest = op.threa.op3;
-    if (getVal(source, m) < getVal(dest, m))
+    if (getVal(source, m) < getVal(dest, m) && address!=0)
         m->pc = address;
 }
 
@@ -299,6 +301,6 @@ void jgt(Machine *m, Operands op) {
     uint16_t address = jmpAddress(m, op.threa.op1);
     Operand source = op.threa.op2;
     Operand dest = op.threa.op3;
-    if (getVal(source, m) > getVal(dest, m))
+    if (getVal(source, m) > getVal(dest, m) && address!=0)
         m->pc = address;
 }
