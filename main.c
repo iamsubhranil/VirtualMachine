@@ -1,7 +1,7 @@
 #include<stdint.h>
 #include<stdio.h>
 #include<string.h>
-#include<stdlib.h>
+#include <stdlib.h>
 
 #include"machine.h"
 #include"parser.h"
@@ -31,10 +31,10 @@ void help(){
 /*========*/
 
 int main(int argc, char **argv){
-	Machine m;
-	m.symbolTable = NULL;
-	m.halt = 0;
-	m.pc = 0;
+	Machine *m = (Machine *)malloc(sizeof(Machine));
+	m->symbolTable = NULL;
+	m->halt = 0;
+	m->pc = 0;
 	char *inputFilename = NULL, *outputFilename = NULL, *executableName = NULL;
 	int r = 1;
 	int h = 0;
@@ -79,30 +79,32 @@ int main(int argc, char **argv){
 		}
 
 		if(executableName){
-			loadBinary(&m, executableName, &check);
+			loadBinary(m, executableName, &check);
 			if(check)
-				run(&m);
+				run(m);
 		}
 		else if(inputFilename || outputFilename){
-			uint16_t num = parseInput(&m, inputFilename, &check);
+			uint16_t num = parseInput(m, inputFilename, &check);
 			if((num > 0) & r & check)
-				run(&m);
+				run(m);
 			if((num > 0) & (outputFilename!=NULL) & check){
 				Instruction ins[num];
 				uint16_t j = 0;
 				while(j<num){
-					ins[j] = readInstruction(&m, j);
+					ins[j] = readInstruction(m, j);
 					j++;
 				}
-				writeBinary(ins, num, &m, outputFilename);
+				writeBinary(ins, num, m, outputFilename);
 			}	
 		}
 	}
 	else{	
-		parseInput(&m, NULL, &check);
+		parseInput(m, NULL, &check);
 		if(check)
-			run(&m);
+			run(m);
 	}
+
+	free(m);
 
 	printf("\n");
 
