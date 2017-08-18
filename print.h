@@ -8,7 +8,9 @@
 #include<stdint.h>
 
 void printIns(Instruction i);
+
 void printMem(Machine m, uint16_t add);
+
 void printOperand(Operand o);
 
 #endif

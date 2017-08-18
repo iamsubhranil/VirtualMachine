@@ -12,10 +12,10 @@
 
 /* Instruction definition */
 
-typedef struct{
-	uint8_t format;
-	uint8_t opcode;
-	Operands operands;
+typedef struct {
+    uint8_t format;
+    uint8_t opcode;
+    Operands operands;
 } Instruction;
 
 #endif
