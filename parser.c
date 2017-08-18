@@ -6,9 +6,6 @@
 
 #include"parser.h"
 
-#include<string.h>
-#include<stdint.h>
-#include<stdio.h>
 #include<stdlib.h>
 
 static int checkVariableName(char *val){
