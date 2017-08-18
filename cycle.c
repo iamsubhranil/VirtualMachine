@@ -6,21 +6,6 @@
 
 /* Machine cycle primitives */
 
-static uint32_t getVal(Operand o, Machine *m){
-	Data d1 = o.data;
-	switch(o.mode){
-		case IMMEDIATE: return d1.imv;
-				break;
-		case REGISTER: return m->registers[d1.rega];
-			       break;
-		case DIRECT: return readData(m, d1.mema);
-			     break;
-		case VARIABLE: return readData(m, getAddress(m, d1.name));
-			       break;
-	}
-	return 0;
-}
-
 static void execute(Machine *m, Instruction ins){
 	if((ins.opcode-0x10)>NUMFUNCS)
 		printf("\n[ERROR] Undefined opcode %u!", ins.opcode);
