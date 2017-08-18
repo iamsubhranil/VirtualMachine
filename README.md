@@ -7,60 +7,68 @@ This is a virtual machine inbuilt with a tiny compiler for the virtual architech
 #### Architechture
 The machine is register based, with 16 GPRs. It also simulates a RAM-like form of storage, and because of that maintains a symbol table to provide the feature of variables. The machine offers four addressing modes :
 1. Register addressing mode : To perform an operation directly on a register, `RN` is the notation of Nth register.
-2. Direct addressing mode : To perform an operation directly on a memory address, which is used internally for all variable based operations. This addressing mode is currently inaccessible to a programmer.
-3. Variable addressing mode : To perform an operation on memory using a variable name. Any operand starting with a letter is considered as a variable. However, in a compiled program, all variable addressings are converted to direct addressings.
-4. Immediate addressing mode : This mode is used to interact with the environment, i.e. to load a value in memory, to perform arithmetic operations on a variable, etc.
+2. Direct addressing mode : To perform an operation directly on a memory address, which is used internally for all variable based operations. To specify a operand using direct addressing mode, precede the address with `@`.
+3. Variable addressing mode : To perform an operation on memory using a variable name. Any operand starting with an underscore `_` is considered as a variable. However, in a compiled program, all variable addressings are converted to direct addressings.
+4. Immediate addressing mode : This mode is used to interact with the environment, i.e. to load a value in memory, to perform arithmetic operations on a variable, etc. To specify an immediate constant, precede the value with `#`
 ##### Instruction set
-There are presently 12 operations available to the machine, and the list will increase in near future.
+There are presently 16 operations available to the machine.
 1. let : Stores a value to a variable, i.e. in a location in memory.
 
-            Example : let 500 a
+            let #500 _a
 2. unlet : Removes a variable from the symbol table, and resets the its address in memory to zero.
 
-            Example : unlet a
+            unlet _a
 3. load : Loads a value from a memory location to a register.
 
-            Example : load a R1
+            load _a R1
 4. store : Stores a value from a register to a memory location.
 
-            Example : store R1 a
+            store R1 _a
 5. incr : Increments the value stored in a memory address or register by 1.
 
-            Example : incr a
+            incr _a
 6. decr : Decrements the value stored in a memory address or register by 1.
 
-            Example : decr a
+            decr _a
 7. add : Adds a variable, register or value to another variable or register.
 
-            Example : add 50 a
+            add #50 _a
 8. sub : Subtracts a variable, register or value from another variable or register.
 
-            Example : sub 50 a
+            sub #50 _a
 9. mul : Multiplies a variable, register or value to another variable or register.
 
-            Example : mul 50 a
+            mul #50 _a
 10. div : Divides a variable, register or value by another variable or register.
 
-            Example : div 50 a
+            div #50 _a
 11. print : Prints the value of a variable or register to the output.
 
-            Example : print a
+            print _a
 12. halt : Stops the machine. Every program must call halt at the end.
 
-            Example : halt
+            halt
+13. setl : Sets a label to the next instruction, to be used with jump calls.
+
+            setl _test
+            incr _a
+14. jne : Jump to a label if arg2 is not equal to arg3. Arg2 should not be a constant. Arg3 can be a constant however.
+
+            jne _test _a 20 // Jump to _test if value stored at _a is not equal to 20
+15. jlt : Jump to a label if arg2 is less than arg3. Arg2 should not be a constant. Arg3 can be a constant however.
+
+            jlt _test _a 20 // Jump to label _test if value stored at _a is less than 20
+16. jgt : Jump to a label if arg2 is greater arg3. Arg2 should not be a constant. Arg3 can be a constant however.
+
+            jne _test _a 20 // Jump to _test if value stored at _a is greater 20
             
 #### System software and operating system
 The machine uses absolute linking while loading binaries for a few reasons, but that restriction will hopefully someday dispose. Whenever a `let` instruction is issued, first the symbol table is searched for the address of the variable. If found, just the new value is set at the address. Otherwise, a new entry in symbol table is created with the name of the variable, the memory is searched for the first free cell, and that address is assigned to the variable in the table. Whenever an `unlet` call is issued, if direct addressing is used, just the address is reset to 0. Otherwise, the entry of the variable in the symbol table is also removed, if found. The address inspector module is very forgivable in nature. If you forget to `let` a variable before its use in the program, it will create a new variable in memory, set its value to 0, and supply it as the argument to your call in the program. The compiler is very basic, and only checks for right instructions in the program. It does not check the validity of the arguments, its your job :D .
 
 #### Bytecode
-The structure of an executable file is pretty straight forward : a header in front containing the magic, binary version and number of instructions, followed by N instructions, and finally a footer (which is just-for-the-sake-of right now). Each opcode is directly converted to an `uint8_t`, all variables are converted to direct addresses and written as `uint8_t`, and based on the addressing mode, either `uint8_t`, `uint16_t` or `uint32_t` is used to store the argument. In the source, you can easily view the hex values of the opcodes used. Furthermore, all members are explicitly "hand-written" to provide cross-platform support, and reduce the binary size over 70%. The loader just reads and checks the header, and puts all instructions to the machine while reading them from the file.
+The structure of an executable file is pretty straight forward : a header in front containing the magic, binary version and number of instructions, followed by N instructions, and finally a footer (which is just-for-the-sake-of right now). Each opcode is directly converted to an `uint8_t`, all variables are converted to direct addresses and written as `uint16_t`, and based on the addressing mode, either `uint8_t`, `uint16_t` or `uint32_t` is used to store the argument. In the source, you can easily view the hex values of the opcodes used. Furthermore, all members are explicitly "hand-written" to provide cross-platform support, and reduce the binary size over 70%. The loader just reads and checks the header, and puts all instructions to the machine while reading them from the file.
 
 
 ### Usage
-1. Compile it using `clang`, `gcc`, or your favourite compiler :
- 
-        clang machine.c -o machine
-
-2. Run 
-
-        ./machine -h
+1. Run `make machine` or `clang .` followed by `make all`
+2. Run `./machine -h`
