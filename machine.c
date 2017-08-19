@@ -84,3 +84,19 @@ void deallocate(Machine *m, char *symbol) {
         temp = temp->next;
     }
 }
+
+Machine *getMachine(){
+    Machine *m = (Machine *)malloc(sizeof(Machine));
+    m->pc = 0;
+    m->occupiedAddress = 0;
+    m->symbolTable = NULL;
+    m->halt = 0;
+    int i;
+    for(i = 0;i < NUM_REG;i++){
+    	m->registers[i] = 0;
+    }
+    for(i = 0;i < NUM_MEM;i++){
+    	m->memory[i].acquired = 0;
+    }
+    return m;
+}

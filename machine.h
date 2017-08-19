@@ -20,8 +20,6 @@ typedef enum {
     DATA
 } CellType;
 
-static char *cellNames[] = {"INSTRUCTION", "DATA"};
-
 typedef union {
     Instruction instruction;
     uint32_t value;
@@ -54,4 +52,5 @@ uint16_t getAddress(Machine *m, char *symbol);
 
 void deallocate(Machine *m, char *symbol);
 
+Machine *getMachine();
 #endif

@@ -31,10 +31,7 @@ void help() {
 /*========*/
 
 int main(int argc, char **argv) {
-    Machine *m = (Machine *) malloc(sizeof(Machine));
-    m->symbolTable = NULL;
-    m->halt = 0;
-    m->pc = 0;
+    Machine *m = getMachine();
     char *inputFilename = NULL, *outputFilename = NULL, *executableName = NULL;
     int r = 1;
     int h = 0;
