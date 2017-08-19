@@ -133,6 +133,7 @@ uint16_t parseInput(Machine *m, char *filename, int *check) {
         fp = fopen(filename, "rb");
         if (!fp) {
             printf("\n[ERROR] Unable to read file %s!", filename);
+	    *check = 0;
             return 0;
         }
     }
@@ -241,7 +242,8 @@ uint16_t parseInput(Machine *m, char *filename, int *check) {
                 token = strtok(NULL, " ");
                 getOperand(op3, token, &insert);
                 checkOperand(*op3, *op, 3, &insert);
-
+		
+		*check = insert;
                 break;
             }
             case ZERO_ADDRESS: {
