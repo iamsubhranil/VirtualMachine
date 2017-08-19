@@ -2,7 +2,7 @@
 #include"binfmt.h"
 #include"names.h"
 #include<stdio.h>
-
+#include<malloc.h>
 
 static void readOperand(Operand *op, FILE *fp) {
     fread(&(op->mode), sizeof(uint8_t), 1, fp);
@@ -39,7 +39,7 @@ void loadBinary(Machine *m, char *filename, int *check) {
             printf("\n[LOADER] Version matched\n[LOADER] Instructions : %u", h.numIns);
 
             uint16_t i = 0;
-            Instruction ins[h.numIns];
+            Instruction *ins = (Instruction *)malloc(sizeof(Instruction)*h.numIns);
             while (i < h.numIns) {
                 fread(&(ins[i].opcode), sizeof(uint8_t), 1, fp);
                 fread(&(ins[i].format), sizeof(uint8_t), 1, fp);
