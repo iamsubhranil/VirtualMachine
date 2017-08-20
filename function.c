@@ -48,8 +48,27 @@ void decr(Machine *m, Operands op) {
     }
 }
 
+static uint32_t getVal(Operand o, Machine *m) {
+    Data d1 = o.data;
+    switch (o.mode) {
+        case IMMEDIATE:
+            return d1.imv;
+            break;
+        case REGISTER:
+            return m->registers[d1.rega];
+            break;
+        case DIRECT:
+            return readData(m, d1.mema);
+            break;
+        case VARIABLE:
+            return readData(m, getAddress(m, d1.name));
+            break;
+    }
+    return 0;
+}
+
 void let(Machine *m, Operands op) {
-    uint32_t val = op.twoa.op1.data.imv;
+    uint32_t val = getVal(op.twoa.op1, m);
     Operand op2 = op.twoa.op2;
     Data d2 = op2.data;
     switch (op2.mode) {
@@ -150,25 +169,6 @@ void print(Machine *m, Operands op) {
             break;
     }
     printf("\n");
-}
-
-static uint32_t getVal(Operand o, Machine *m) {
-    Data d1 = o.data;
-    switch (o.mode) {
-        case IMMEDIATE:
-            return d1.imv;
-            break;
-        case REGISTER:
-            return m->registers[d1.rega];
-            break;
-        case DIRECT:
-            return readData(m, d1.mema);
-            break;
-        case VARIABLE:
-            return readData(m, getAddress(m, d1.name));
-            break;
-    }
-    return 0;
 }
 
 void add(Machine *m, Operands op) {
