@@ -127,7 +127,7 @@ static Instruction *newInstruction() {
     return (Instruction *) malloc(sizeof(Instruction));
 }
 
-uint16_t parseInput(Machine *m, char *filename, int *check) {
+Instructions * parseInput(char *filename, int *check) {
     FILE *fp = stdin;
     if (filename) {
         fp = fopen(filename, "rb");
@@ -142,12 +142,14 @@ uint16_t parseInput(Machine *m, char *filename, int *check) {
     size_t size;
     char *token;
     uint16_t add = 0;
+    Instructions *newIns = (Instructions *)malloc(sizeof(Instructions));
     while (insert) {
         if (fp == stdin)
             printf("\n > ");
         size = readline(&buff, fp);
         token = strtok(buff, " ");
-        Instruction *is = newInstruction();
+	newIns->instructions = (Instruction *)realloc(newIns->instructions, ++add*sizeof(Instruction));
+        Instruction *is = &(newIns->instructions[add-1]);
         uint8_t *op = &(is->opcode);
         uint8_t *format = &(is->format);
         Operands *os = &(is->operands);
@@ -203,7 +205,7 @@ uint16_t parseInput(Machine *m, char *filename, int *check) {
             *format = THREE_ADDRESS;
         } else {
             printf("\n[ERROR] Unknown operation %s", token);
-            free(is);
+            add--;
             continue;
         }
         switch (*format) {
@@ -252,12 +254,11 @@ uint16_t parseInput(Machine *m, char *filename, int *check) {
             }
 
         }
-        writeInstruction(m, add, *is);
         //printMem(m, add);
-        add++;
         if (*op == HALT)
             insert = 0;
     }
-    return add;
+    newIns->noi = add;
+    return newIns;
 }
 

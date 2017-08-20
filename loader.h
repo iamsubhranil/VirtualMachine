@@ -1,8 +1,8 @@
 #ifndef LOADER_H
 #define LOADER_H
 
-#include"machine.h"
+#include"instruction.h"
 
-void loadBinary(Machine *m, char *fileName, int *check);
+Instructions * loadBinary(char *fileName, int *check);
 
 #endif

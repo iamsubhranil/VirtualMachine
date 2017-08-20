@@ -22,14 +22,15 @@ static void readOperand(Operand *op, FILE *fp) {
     }
 }
 
-void loadBinary(Machine *m, char *filename, int *check) {
+Instructions * loadBinary(char *filename, int *check) {
     FILE *fp = fopen(filename, "rb");
     if (!fp) {
         printf("\n[ERROR] Unable to open file %s!\n", filename);
         *check = 0;
-        return;
+        return NULL;
     }
     Header h;
+    Instructions *inss = (Instructions *)malloc(sizeof(Instructions));
     fread(&(h.magic), sizeof(uint32_t), 1, fp);
     fread(&(h.version), sizeof(uint8_t), 1, fp);
     fread(&(h.numIns), sizeof(uint16_t), 1, fp);
@@ -39,24 +40,25 @@ void loadBinary(Machine *m, char *filename, int *check) {
             printf("\n[LOADER] Version matched\n[LOADER] Instructions : %u", h.numIns);
 
             uint16_t i = 0;
-            Instruction *ins = (Instruction *)malloc(sizeof(Instruction)*h.numIns);
+	    inss->noi = h.numIns;
+            inss->instructions = (Instruction *)malloc(sizeof(Instruction)*h.numIns);
             while (i < h.numIns) {
-                fread(&(ins[i].opcode), sizeof(uint8_t), 1, fp);
-                fread(&(ins[i].format), sizeof(uint8_t), 1, fp);
-                switch (ins[i].format) {
+                fread(&(inss->instructions[i].opcode), sizeof(uint8_t), 1, fp);
+                fread(&(inss->instructions[i].format), sizeof(uint8_t), 1, fp);
+                switch (inss->instructions[i].format) {
                     case ZERO_ADDRESS:
                         break;
                     case ONE_ADDRESS:
-                        readOperand(&(ins[i].operands.onea.op1), fp);
+                        readOperand(&(inss->instructions[i].operands.onea.op1), fp);
                         break;
                     case TWO_ADDRESS:
-                        readOperand(&(ins[i].operands.twoa.op1), fp);
-                        readOperand(&(ins[i].operands.twoa.op2), fp);
+                        readOperand(&(inss->instructions[i].operands.twoa.op1), fp);
+                        readOperand(&(inss->instructions[i].operands.twoa.op2), fp);
                         break;
                     case THREE_ADDRESS:
-                        readOperand(&(ins[i].operands.threa.op1), fp);
-                        readOperand(&(ins[i].operands.threa.op2), fp);
-                        readOperand(&(ins[i].operands.threa.op3), fp);
+                        readOperand(&(inss->instructions[i].operands.threa.op1), fp);
+                        readOperand(&(inss->instructions[i].operands.threa.op2), fp);
+                        readOperand(&(inss->instructions[i].operands.threa.op3), fp);
                         break;
                 }
                 i++;
@@ -69,12 +71,7 @@ void loadBinary(Machine *m, char *filename, int *check) {
                 printf("\n[LOADER:WARNING] Instruction length mismatch! The binary may be corrupted!");
             }
             printf("\n[LOADER] Binary format : %s\n", binaryFormat[f.format - 0x40]);
-            i = 0;
-            while (i < h.numIns) {
-                //printIns(instructions[i]);
-                writeInstruction(m, i, ins[i]);
-                i++;
-            }
+	    return inss;
         } else {
             printf("\n[ERROR] Binary version incompatible!");
             *check = 0;
@@ -84,4 +81,5 @@ void loadBinary(Machine *m, char *filename, int *check) {
         *check = 0;
     }
     fclose(fp);
+    return NULL;
 }

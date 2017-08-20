@@ -3,8 +3,8 @@
 #define PARSER_H
 
 #include<stdint.h>
-#include"machine.h"
+#include"instruction.h"
 
-uint16_t parseInput(Machine *m, char *fileName, int *insert);
+Instructions * parseInput(char *fileName, int *insert);
 
 #endif

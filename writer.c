@@ -2,13 +2,6 @@
 #include"binfmt.h"
 #include<stdio.h>
 
-static void convertVariableToDirect(Operand *a, Machine *m) {
-    if (a->mode == VARIABLE) {
-        a->mode = DIRECT;
-        a->data.mema = getAddress(m, a->data.name);
-    }
-}
-
 static void writeHeader(FILE *fp, uint16_t length) {
     Header header = {MAGIC, VERSION, length};
     fwrite(&(header.magic), sizeof(uint32_t), 1, fp);
@@ -62,34 +55,19 @@ static void writeOperands(Instruction i, FILE *fp) {
     }
 }
 
-void writeBinary(Instruction ins[], uint16_t length, Machine *m, char *filename) {
+void writeBinary(Instructions *ins, char *filename) {
     FILE *fp = fopen(filename, "wb");
     if (!fp) {
         printf("\n[ERROR] Unable to open file %s!", filename);
         return;
     }
     uint16_t i = 0;
+    uint16_t length = ins->noi;
     writeHeader(fp, length);
     //printf("\nOpcode\tFormat\tAddressingMode1\tValue1\tAddressingMode2\tValue2\tAddressingMode3\tValue3");
     //printf("\n======\t======\t===============\t======\t===============\t======\t===============\t======");
     while (i < length) {
-        Instruction in = ins[i];
-        switch (in.format) {
-            case ZERO_ADDRESS:
-                break;
-            case ONE_ADDRESS:
-                convertVariableToDirect(&in.operands.onea.op1, m);
-                break;
-            case TWO_ADDRESS:
-                convertVariableToDirect(&in.operands.twoa.op1, m);
-                convertVariableToDirect(&in.operands.twoa.op2, m);
-                break;
-            case THREE_ADDRESS:
-                convertVariableToDirect(&in.operands.threa.op1, m);
-                convertVariableToDirect(&in.operands.threa.op2, m);
-                convertVariableToDirect(&in.operands.threa.op3, m);
-                break;
-        }
+        Instruction in = ins->instructions[i];
         //printf("\n%5x", in.opcode);
         fwrite(&(in.opcode), sizeof(uint8_t), 1, fp);
         //printf("\t%5x", in.format);

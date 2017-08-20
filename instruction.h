@@ -18,4 +18,9 @@ typedef struct {
     Operands operands;
 } Instruction;
 
+typedef struct{
+	Instruction *instructions;
+	uint16_t noi;
+} Instructions;
+
 #endif

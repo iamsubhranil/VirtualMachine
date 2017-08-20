@@ -12,7 +12,7 @@
 /*======*/
 
 void help() {
-    printf("\n Flags : \n \
+	printf("\n Flags : \n \
 			--input \t-i\tSpecify an input file\n \
 			--output\t-o\tSpecify output executable\n \
 			--norun \t-n\tCompile and save, but do not run the source file (Must be used with --output)\n \
@@ -31,73 +31,79 @@ void help() {
 /*========*/
 
 int main(int argc, char **argv) {
-    Machine *m = getMachine();
-    char *inputFilename = NULL, *outputFilename = NULL, *executableName = NULL;
-    int r = 1;
-    int h = 0;
-    int check = 1;
-    if (argc > 1) {
-        int i = 1;
-        for (i = 1; i < argc; i++) {
-            if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--input") == 0)
-                inputFilename = argv[++i];
-            else if (strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "-output") == 0)
-                outputFilename = argv[++i];
-            else if (strcmp(argv[i], "-r") == 0 || strcmp(argv[i], "--run") == 0)
-                executableName = argv[++i];
-            else if (strcmp(argv[i], "-n") == 0 || strcmp(argv[i], "--norun") == 0)
-                r = 0;
-            else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0)
-                h = 1;
-        }
-        if (h) {
-            if (inputFilename || executableName || !r || outputFilename)
-                printf("\n[HELP] Ignoring additional commands!");
-            help();
-            return 0;
-        } else if (((argc - 1) - !r) % 2 != 0) {
-            printf("\n[ERROR] Wrong arguments.\n");
-            help();
-            return 0;
-        } else if (inputFilename && executableName) {
-            printf("\n[ERROR] Wrong use of '--run'. Use '--output' instead.\n");
-            return 1;
-        } else if ((executableName || (inputFilename && !outputFilename)) && !r) {
-            printf("\n[ERROR] Wrong use of '--norun'. See '--help'.\n");
-            return 1;
-        } else if (!inputFilename && !executableName && !outputFilename) {
-            printf("\n[ERROR] Wrong arguments.\n");
-            help();
-            return 0;
-        }
+	Machine *m = getMachine();
+	Instructions *ins = NULL;
+	char *inputFilename = NULL, *outputFilename = NULL, *executableName = NULL;
+	int r = 1;
+	int h = 0;
+	int check = 1;
+	if (argc > 1) {
+		int i = 1;
+		for (i = 1; i < argc; i++) {
+			if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--input") == 0)
+				inputFilename = argv[++i];
+			else if (strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "-output") == 0)
+				outputFilename = argv[++i];
+			else if (strcmp(argv[i], "-r") == 0 || strcmp(argv[i], "--run") == 0)
+				executableName = argv[++i];
+			else if (strcmp(argv[i], "-n") == 0 || strcmp(argv[i], "--norun") == 0)
+				r = 0;
+			else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0)
+				h = 1;
+		}
+		if (h) {
+			if (inputFilename || executableName || !r || outputFilename)
+				printf("\n[HELP] Ignoring additional commands!");
+			help();
+			return 0;
+		} else if (((argc - 1) - !r) % 2 != 0) {
+			printf("\n[ERROR] Wrong arguments.\n");
+			help();
+			return 0;
+		} else if (inputFilename && executableName) {
+			printf("\n[ERROR] Wrong use of '--run'. Use '--output' instead.\n");
+			return 1;
+		} else if ((executableName || (inputFilename && !outputFilename)) && !r) {
+			printf("\n[ERROR] Wrong use of '--norun'. See '--help'.\n");
+			return 1;
+		} else if (!inputFilename && !executableName && !outputFilename) {
+			printf("\n[ERROR] Wrong arguments.\n");
+			help();
+			return 0;
+		}
 
-        if (executableName) {
-            loadBinary(m, executableName, &check);
-            if (check)
-                run(m);
-        } else if (inputFilename || outputFilename) {
-            uint16_t num = parseInput(m, inputFilename, &check);
-            if ((num > 0) & r & check)
-                run(m);
-            if ((num > 0) & (outputFilename != NULL) & check) {
-                Instruction ins[num];
-                uint16_t j = 0;
-                while (j < num) {
-                    ins[j] = readInstruction(m, j);
-                    j++;
-                }
-                writeBinary(ins, num, m, outputFilename);
-            }
-        }
-    } else {
-        parseInput(m, NULL, &check);
-        if (check)
-            run(m);
-    }
+		if (executableName) {
+			ins = loadBinary(executableName, &check);
+			if (check){
+				writeInstructions(m, ins);
+				run(m);
+			}
+		} else if (inputFilename || outputFilename) {
+			ins = parseInput(inputFilename, &check);
+			if(check){
+				writeInstructions(m, ins);
+				if ((ins->noi > 0) & r){
+					run(m);
+				}
+				if ((ins->noi > 0) & (outputFilename != NULL)) {
+					finalizeInstructions(m, ins);
+					writeBinary(ins, outputFilename);
+				}
+			}
+		}
+	} else {
+		ins = parseInput(NULL, &check);
+		if (check){
+			writeInstructions(m, ins);
+			run(m);
+		}
+	}
 
-    free(m);
+	free(m);
+	if(ins!=NULL)
+		free(ins);
 
-    printf("\n");
+	printf("\n");
 
-    return 0;
+	return 0;
 }
