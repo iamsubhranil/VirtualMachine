@@ -54,13 +54,13 @@ There are presently 16 operations available to the machine.
             incr _a // test points here
 14. jne : Jump to a label if arg2 is not equal to arg3. Arg2 should not be a constant. Arg3 can be a constant however.
 
-            jne _test _a 20 // Jump to _test if value stored at _a is not equal to 20
+            jne _test _a #20 // Jump to _test if value stored at _a is not equal to 20
 15. jlt : Jump to a label if arg2 is less than arg3. Arg2 should not be a constant. Arg3 can be a constant however.
 
-            jlt _test _a 20 // Jump to label _test if value stored at _a is less than 20
+            jlt _test _a #20 // Jump to label _test if value stored at _a is less than 20
 16. jgt : Jump to a label if arg2 is greater arg3. Arg2 should not be a constant. Arg3 can be a constant however.
 
-            jne _test _a 20 // Jump to _test if value stored at _a is greater 20
+            jne _test _a #20 // Jump to _test if value stored at _a is greater 20
             
 #### System software and operating system
 The machine uses absolute linking while loading binaries for a few reasons, but that restriction will hopefully someday dispose. Whenever a `let` instruction is issued, first the symbol table is searched for the address of the variable. If found, just the new value is set at the address. Otherwise, a new entry in symbol table is created with the name of the variable, the memory is searched for the first free cell, and that address is assigned to the variable in the table. Whenever an `unlet` call is issued, if direct addressing is used, just the address is reset to 0. Otherwise, the entry of the variable in the symbol table is also removed, if found. The address inspector module is very forgivable in nature. If you forget to `let` a variable before its use in the program, it will create a new variable in memory, set its value to 0, and supply it as the argument to your call in the program. The compiler is very basic, and only checks for right instructions in the program. It does not check the validity of the arguments, its your job :D .
