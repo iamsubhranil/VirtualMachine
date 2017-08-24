@@ -99,9 +99,8 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	free(m);
-	if(ins!=NULL)
-		free(ins);
+	destroyMachine(m);
+	freeInstructions(ins);
 
 	printf("\n");
 

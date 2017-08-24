@@ -46,7 +46,7 @@ static uint16_t memallocate(Machine *m, char *symbol) {
 	uint16_t allocationAddress = getFirstFree(*m);
 	//printf("\n[MEMALLOCATE] Allocating memory for %s at address %u\n", symbol, allocationAddress);
 	SymbolTable *newSymbol = (SymbolTable *) malloc(sizeof(SymbolTable));
-	newSymbol->symbolName = strdup(symbol);
+	newSymbol->symbolName = symbol;
 	newSymbol->next = NULL;
 	newSymbol->mema = allocationAddress;
 	if (m->symbolTable == NULL) {
@@ -139,4 +139,15 @@ void finalizeInstructions(Machine *m, Instructions *ins){
 		}
 		i++;
 	}
+}
+
+void destroyMachine(Machine *m){
+	SymbolTable *top = m->symbolTable;
+	while(top!=NULL){
+		SymbolTable *back = top;
+		top = top->next;
+		free(back->symbolName);
+		free(back);
+	}
+	free(m);	
 }

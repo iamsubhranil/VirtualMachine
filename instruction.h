@@ -23,4 +23,5 @@ typedef struct{
 	uint16_t noi;
 } Instructions;
 
+void freeInstructions(Instructions *ins);
 #endif

@@ -55,4 +55,6 @@ void deallocate(Machine *m, char *symbol);
 Machine *getMachine();
 
 void finalizeInstructions(Machine *m, Instructions *ins);
+
+void destroyMachine(Machine *m);
 #endif

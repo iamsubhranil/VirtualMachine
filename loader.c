@@ -27,6 +27,7 @@ Instructions * loadBinary(char *filename, int *check) {
     if (!fp) {
         printf("\n[ERROR] Unable to open file %s!\n", filename);
         *check = 0;
+	fclose(fp);
         return NULL;
     }
     Header h;
@@ -71,6 +72,7 @@ Instructions * loadBinary(char *filename, int *check) {
                 printf("\n[LOADER:WARNING] Instruction length mismatch! The binary may be corrupted!");
             }
             printf("\n[LOADER] Binary format : %s\n", binaryFormat[f.format - 0x40]);
+	    fclose(fp);
 	    return inss;
         } else {
             printf("\n[ERROR] Binary version incompatible!");

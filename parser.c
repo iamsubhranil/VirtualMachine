@@ -75,6 +75,7 @@ static void getOperand(Operand *op, char *val, int *insert) {
             *insert = 0;
             break;
     }
+    free(val);
     op->mode = addressingMode;
 }
 
@@ -134,6 +135,7 @@ Instructions * parseInput(char *filename, int *check) {
         if (!fp) {
             printf("\n[ERROR] Unable to read file %s!", filename);
 	    *check = 0;
+	    fclose(fp);
             return 0;
         }
     }
@@ -143,6 +145,8 @@ Instructions * parseInput(char *filename, int *check) {
     char *token;
     uint16_t add = 0;
     Instructions *newIns = (Instructions *)malloc(sizeof(Instructions));
+    newIns->instructions = NULL;
+    newIns->noi = 0;
     while (insert) {
         if (fp == stdin)
             printf("\n > ");
@@ -252,12 +256,13 @@ Instructions * parseInput(char *filename, int *check) {
                 os->zeroa.dummy = '0';
                 break;
             }
-
         }
+	free(buff);
         //printMem(m, add);
         if (*op == HALT)
             insert = 0;
     }
+    fclose(fp);
     newIns->noi = add;
     return newIns;
 }
