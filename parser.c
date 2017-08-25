@@ -100,7 +100,7 @@ static void checkOperand(Operand op, uint8_t operation, int opnum, int *insert) 
             *insert = (opnum == 1) || (opnum == 2 && (op.mode == VARIABLE || op.mode == REGISTER || op.mode == DIRECT));
             break;
         case LOAD:
-            *insert = (opnum == 1 && (op.mode == VARIABLE || op.mode == DIRECT)) || (opnum == 2 && op.mode == REGISTER);
+            *insert = (opnum == 1 && op.mode != IMMEDIATE) || (opnum == 2 && op.mode == REGISTER);
             break;
         case STORE:
             *insert = (opnum == 1 && op.mode == REGISTER) || (opnum == 2 && (op.mode == VARIABLE || op.mode == DIRECT));
