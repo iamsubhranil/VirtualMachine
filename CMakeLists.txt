@@ -13,4 +13,5 @@ add_executable(machine main.c
         loader.c
         parser.c
         writer.c
-        print.c)
+        print.c
+        analyzer.c)
