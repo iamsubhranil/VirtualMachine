@@ -69,5 +69,5 @@ The machine uses absolute linking while loading binaries for a few reasons, but 
 The structure of an executable file is pretty straight forward : a header in front containing the magic, binary version and number of instructions, followed by N instructions, and finally a footer (which is just-for-the-sake-of right now). Each opcode is directly converted to an `uint8_t`, all variables are converted to direct addresses and written as `uint16_t`, and based on the addressing mode, either `uint8_t`, `uint16_t` or `uint32_t` is used to store the argument. In the source, you can easily view the hex values of the opcodes used. Furthermore, all members are explicitly "hand-written" to provide cross-platform support, and reduce the binary size over 70%. The loader just reads and checks the header, and returns a stream of instructions from the file, after which, the driver puts them into the machine and runs them.
 
 ### Usage
-1. Run `make machine` or `clang .` followed by `make all`
+1. Run `clang .` in the repo directory followed by `make all`
 2. Run `./machine -h`
