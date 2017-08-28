@@ -344,7 +344,6 @@ void print(Machine *m, Operands op) {
                 printf("%u", getVal(operands[count], m));
                 count++;
                 if(count > noa){
-                    free(operands);
                     printf("\n[ERROR] Less arguments in print!");
                     break;
                 }
@@ -380,5 +379,15 @@ void inpts(Machine *m, Operands op){
 
 void prntl(Machine *m, Operands op){
     print(m, op);
+    printf("\n");
+}
+
+void prompt(Machine *m, Operands op){
+    char *prompt = formatString(op.onea.op1.data.ims);
+    printf("%s", prompt);
+}
+
+void prmptl(Machine *m, Operands op){
+    prompt(m, op);
     printf("\n");
 }

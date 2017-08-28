@@ -30,7 +30,7 @@ void sub(Machine *m, Operands op);
 
 void mul(Machine *m, Operands op);
 
-void div(Machine *m, Operands op);
+void divd(Machine *m, Operands op);
 
 void setl(Machine *m, Operands op);
 
@@ -46,6 +46,11 @@ void inpti(Machine *m, Operands op);
 
 void inpts(Machine *m, Operands op);
 
-static function func[] = {incr, decr, unlet, print, load, store, let, halt, add, sub, mul, div, setl, jne, jlt, jgt, prntl, inpti, inpts};
+void prompt(Machine *m, Operands op);
+
+void prmptl(Machine *m, Operands op);
+
+static function func[] = {incr, decr, unlet, print, load, store, let, halt, add, sub, mul, divd, setl, jne, jlt, jgt, prntl, inpti, inpts,
+                            prompt, prmptl};
 
 #endif
