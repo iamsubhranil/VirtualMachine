@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
                     run(m);
                 }
                 if ((ins->noi > 0) & (outputFilename != NULL)) {
-                    finalizeInstructions(m, ins);
+                    //finalizeInstructions(m, ins);
                     writeBinary(ins, outputFilename);
                 }
             }
