@@ -4,6 +4,18 @@
 #include<stdio.h>
 #include<malloc.h>
 
+static char * readString(FILE *fp){
+    uint8_t len = 0;
+    fread(&len, sizeof(uint8_t), 1, fp);
+    char *buffer = malloc(sizeof(char)*len);
+    int i = 0;
+    while(i<len){
+        fread(&(buffer[i]), sizeof(char), 1, fp);
+        i++;
+    }
+    return buffer;
+}
+
 static void readOperand(Operand *op, FILE *fp) {
     fread(&(op->mode), sizeof(uint8_t), 1, fp);
     switch (op->mode) {
@@ -16,8 +28,11 @@ static void readOperand(Operand *op, FILE *fp) {
         case DIRECT:
             fread(&(op->data.mema), sizeof(uint16_t), 1, fp);
             break;
+        case IMMEDIATES:
+            op->data.ims = readString(fp);
+            break;
         case VARIABLE:
-            printf("\n[LOADER:WARNING] Bad addressing mode!");
+            op->data.name = readString(fp);
             break;
     }
 }
@@ -27,7 +42,7 @@ Instructions * loadBinary(char *filename, int *check) {
     if (!fp) {
         printf("\n[ERROR] Unable to open file %s!\n", filename);
         *check = 0;
-	fclose(fp);
+        fclose(fp);
         return NULL;
     }
     Header h;
@@ -41,7 +56,7 @@ Instructions * loadBinary(char *filename, int *check) {
             printf("\n[LOADER] Version matched\n[LOADER] Instructions : %u", h.numIns);
 
             uint16_t i = 0;
-	    inss->noi = h.numIns;
+            inss->noi = h.numIns;
             inss->instructions = (Instruction *)malloc(sizeof(Instruction)*h.numIns);
             while (i < h.numIns) {
                 fread(&(inss->instructions[i].opcode), sizeof(uint8_t), 1, fp);
@@ -72,8 +87,8 @@ Instructions * loadBinary(char *filename, int *check) {
                 printf("\n[LOADER:WARNING] Instruction length mismatch! The binary may be corrupted!");
             }
             printf("\n[LOADER] Binary format : %s\n", binaryFormat[f.format - 0x40]);
-	    fclose(fp);
-	    return inss;
+            fclose(fp);
+            return inss;
         } else {
             printf("\n[ERROR] Binary version incompatible!");
             *check = 0;

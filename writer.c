@@ -1,5 +1,6 @@
 #include"writer.h"
 #include"binfmt.h"
+#include"string.h"
 #include<stdio.h>
 
 static void writeHeader(FILE *fp, uint16_t length) {
@@ -12,6 +13,17 @@ static void writeHeader(FILE *fp, uint16_t length) {
 static void writeFooter(FILE *fp) {
     Footer footer = {OPTIMISED, sizeof(Instruction) & 0xFF};
     fwrite(&footer, sizeof(Footer), 1, fp);
+}
+
+static void writeString(char *string, FILE *fp){
+    uint8_t ln = strlen(string) + 1;
+    fwrite(&ln, sizeof(uint8_t), 1, fp);
+    int i = 0;
+    while(i < ln){
+        char c = string[i];
+        fwrite(&c, sizeof(char), 1, fp);
+        i++;
+    }
 }
 
 static void writeOperand(Operand op, FILE *fp) {
@@ -31,7 +43,11 @@ static void writeOperand(Operand op, FILE *fp) {
             fwrite(&(d.mema), sizeof(uint16_t), 1, fp);
             //printf("\t%4x", d.mema);
             break;
+        case IMMEDIATES:
+            writeString(d.ims, fp);
+            break;            
         case VARIABLE:
+            writeString(d.name, fp);
             break;
     }
 }
