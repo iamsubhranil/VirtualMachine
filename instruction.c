@@ -2,8 +2,8 @@
 #include"instruction.h"
 
 static void freeOperand(Operand *op){
-	if(op->mode==VARIABLE)
-		free(op->data.name);
+	//if(op->mode==VARIABLE)
+		//free(op->data.name);
 }
 
 static void freeInstruction(Instruction ins){
