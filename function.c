@@ -309,6 +309,11 @@ void jgt(Machine *m, Operands op) {
 static char *formatString(char *input){
     char *buffer = NULL;
     size_t dummy = 0, len = strlen(input), i = 0;
+    if(strcmp(input, "(noprompt)") == 0){
+        buffer = addToBuffer(buffer, &dummy, ' ');
+        buffer = addToBuffer(buffer, &dummy, '\0');
+        return buffer;
+    }
     while(i < len){
         char p = input[i];
         if(p=='\\' && i < (len-1)){
