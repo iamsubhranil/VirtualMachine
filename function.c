@@ -3,53 +3,6 @@
 #include<stdio.h>
 #include<stdlib.h>
 
-void incr(Machine *m, Operands op) {
-    uint32_t val;
-    Operand op1 = op.onea.op1;
-    Data d1 = op1.data;
-    switch (op1.mode) {
-        case REGISTER:
-            m->registers[d1.rega] += 1;
-            break;
-        case DIRECT:
-            val = readData(m, d1.mema) + 1;
-            writeData(m, d1.mema, val);
-            break;
-        case VARIABLE: {
-            uint16_t add = getAddress(m, d1.name);
-            val = readData(m, add) + 1;
-            writeData(m, add, val);
-            break;
-        }
-        case IMMEDIATE:
-            break; // TODO: Handle error
-    }
-}
-
-void decr(Machine *m, Operands op) {
-    uint32_t val;
-    Operand op1 = op.onea.op1;
-    Data d1 = op1.data;
-    switch (op1.mode) {
-        case REGISTER:
-            m->registers[d1.rega] -= 1;
-            break;
-        case DIRECT:
-            val = readData(m, d1.mema) - 1;
-            writeData(m, d1.mema, val);
-            break;
-        case VARIABLE: {
-            uint16_t add = getAddress(m, d1.name);
-            val = readData(m, add) - 1;
-            writeData(m, add, val);
-            break;
-
-        }
-        case IMMEDIATE:
-            break; // TODO: Handle error
-    }
-}
-
 static uint32_t getVal(Operand o, Machine *m) {
     Data d1 = o.data;
     switch (o.mode) {
@@ -69,65 +22,44 @@ static uint32_t getVal(Operand o, Machine *m) {
     return 0;
 }
 
+static void putVal(Operand o, Machine *m, uint32_t val){
+    Data d1 = o.data;
+    switch(o.mode){
+        case REGISTER:
+            m->registers[d1.rega] = val;
+            break;
+        case DIRECT:
+            writeData(m, d1.mema, val);
+            break;
+        case VARIABLE:
+            writeData(m, getAddress(m, d1.name), val);
+            break;
+    }
+}
+void incr(Machine *m, Operands op) {
+    uint32_t val = getVal(op.onea.op1, m);
+    putVal(op.onea.op1, m, val+1);
+}
+
+void decr(Machine *m, Operands op) {
+    uint32_t val = getVal(op.onea.op1, m);
+    putVal(op.onea.op1, m, val - 1); 
+}
+
 void let(Machine *m, Operands op) {
     uint32_t val = getVal(op.twoa.op1, m);
     Operand op2 = op.twoa.op2;
-    Data d2 = op2.data;
-    switch (op2.mode) {
-        case REGISTER:
-            m->registers[d2.rega] = val;
-            break;
-        case DIRECT:
-            writeData(m, d2.mema, val);
-            break;
-        case VARIABLE: {
-            uint16_t add = getAddress(m, d2.name);
-            writeData(m, add, val);
-            break;
-        }
-        case IMMEDIATE:
-            break; // TODO: Handle error
-    }
+    putVal(op2, m, val);
 }
 
 void load(Machine *m, Operands op) {
     Operand op1 = op.twoa.op1;
-    Data d1 = op1.data;
-    Data d2 = op.twoa.op2.data;
-    switch (op1.mode) {
-        case REGISTER:
-            m->registers[d2.rega] = m->registers[d1.rega];
-            break;
-        case DIRECT:
-            m->registers[d2.rega] = readData(m, d1.mema);
-            break;
-        case VARIABLE:
-            m->registers[d2.rega] = readData(m, getAddress(m, d1.name));
-            //printf("\n[LOAD] Load complete to reg%u of val %u!\n", d2.rega, m->registers[d2.rega]);
-            //printf("\n[LOAD] Expected : %u from address : %u\n", readData(m, getAddress(m, d1.name)), getAddress(m, d1.name));
-            break;
-        case IMMEDIATE:
-            break; // TODO: Handle error
-    }
+    putVal(op.twoa.op2, m, getVal(op1, m));
 }
 
 void store(Machine *m, Operands op) {
-    Data d1 = op.twoa.op1.data;
-    Data d2 = op.twoa.op2.data;
     Operand op2 = op.twoa.op2;
-    switch (op2.mode) {
-        case REGISTER:
-            m->registers[d2.rega] = m->registers[d1.rega];
-            break;
-        case DIRECT:
-            writeData(m, d2.mema, m->registers[d1.rega]);
-            break;
-        case VARIABLE:
-            writeData(m, getAddress(m, d2.name), m->registers[d1.rega]);
-            break;
-        case IMMEDIATE:
-            break; // TODO: Handle error
-    }
+    putVal(op2, m, m->registers[op.twoa.op1.data.rega]);
 }
 
 void halt(Machine *m, Operands op) {
@@ -153,83 +85,31 @@ void unlet(Machine *m, Operands op) {
 }
 
 void add(Machine *m, Operands op) {
-    Operand op1 = op.twoa.op1;
-    Operand op2 = op.twoa.op2;
-    Data d2 = op2.data;
-    uint32_t readval = getVal(op1, m), temp = 0;
-    switch (op2.mode) {
-        case REGISTER:
-            m->registers[d2.rega] += readval;
-            break;
-        case DIRECT:
-            temp = readData(m, d2.mema);
-            writeData(m, d2.mema, temp + readval);
-            break;
-        case VARIABLE:
-            temp = readData(m, getAddress(m, d2.name));
-            writeData(m, getAddress(m, d2.name), temp + readval);
-            break;
-    }
+    Operand op1 = op.threa.op1;
+    Operand op2 = op.threa.op2;
+    uint32_t readval1 = getVal(op1, m), readval2 = getVal(op2, m);
+    putVal(op.threa.op3, m, readval1 + readval2);
 }
 
 void sub(Machine *m, Operands op) {
-    Operand op1 = op.twoa.op1;
-    Operand op2 = op.twoa.op2;
-    Data d2 = op2.data;
-    uint32_t readval = getVal(op1, m), temp = 0;
-    switch (op2.mode) {
-        case REGISTER:
-            m->registers[d2.rega] -= readval;
-            break;
-        case DIRECT:
-            temp = readData(m, d2.mema);
-            writeData(m, d2.mema, temp - readval);
-            break;
-        case VARIABLE:
-            temp = readData(m, getAddress(m, d2.name));
-            writeData(m, getAddress(m, d2.name), temp - readval);
-            break;
-    }
+    Operand op1 = op.threa.op1;
+    Operand op2 = op.threa.op2;
+    uint32_t readval1 = getVal(op1, m), readval2 = getVal(op2, m); 
+    putVal(op.threa.op3, m, readval1 - readval2);
 }
 
 void mul(Machine *m, Operands op) {
-    Operand op1 = op.twoa.op1;
-    Operand op2 = op.twoa.op2;
-    Data d2 = op2.data;
-    uint32_t readval = getVal(op1, m), temp = 0;
-    switch (op2.mode) {
-        case REGISTER:
-            m->registers[d2.rega] *= readval;
-            break;
-        case DIRECT:
-            temp = readData(m, d2.mema);
-            writeData(m, d2.mema, temp * readval);
-            break;
-        case VARIABLE:
-            temp = readData(m, getAddress(m, d2.name));
-            writeData(m, getAddress(m, d2.name), temp * readval);
-            break;
-    }
+    Operand op1 = op.threa.op1;
+    Operand op2 = op.threa.op2;
+    uint32_t readval1 = getVal(op1, m), readval2 = getVal(op2, m);
+    putVal(op.threa.op3, m, readval1 * readval2);
 }
 
 void divd(Machine *m, Operands op) {
-    Operand op1 = op.twoa.op1;
-    Operand op2 = op.twoa.op2;
-    Data d2 = op2.data;
-    uint32_t readval = getVal(op1, m), temp = 0;
-    switch (op2.mode) {
-        case REGISTER:
-            m->registers[d2.rega] /= readval;
-            break;
-        case DIRECT:
-            temp = readData(m, d2.mema);
-            writeData(m, d2.mema, temp / readval);
-            break;
-        case VARIABLE:
-            temp = readData(m, getAddress(m, d2.name));
-            writeData(m, getAddress(m, d2.name), temp / readval);
-            break;
-    }
+    Operand op1 = op.threa.op1;
+    Operand op2 = op.threa.op2;
+    uint32_t readval1 = getVal(op1, m), readval2 = getVal(op2, m);
+    putVal(op.threa.op3, m, readval1 / readval2);
 }
 
 void setl(Machine *m, Operands op) {
@@ -393,19 +273,6 @@ void prmptl(Machine *m, Operands op){
 }
 
 void mod(Machine *m, Operands op){
-    uint32_t val = getVal(op.twoa.op2, m), oldval = 0;
-    Operand dest = op.twoa.op1;
-    switch(dest.mode){
-        case REGISTER:
-            m->registers[dest.data.rega] = m->registers[dest.data.rega] % val;
-            break;
-        case DIRECT:
-            oldval = getVal(dest, m) % val;
-            writeData(m, dest.data.mema, oldval);
-            break;
-        case VARIABLE:
-            oldval = getVal(dest, m) % val;
-            writeData(m, getAddress(m, dest.data.name), oldval);
-            break;
-    }
+    uint32_t val1 = getVal(op.threa.op1, m), val2 = getVal(op.threa.op2, m);
+    putVal(op.threa.op3, m, val1 % val2);
 }
