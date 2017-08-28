@@ -1,6 +1,7 @@
 #include"function.h"
 #include"utility.h"
 #include<stdio.h>
+#include<stdlib.h>
 
 void incr(Machine *m, Operands op) {
     uint32_t val;
@@ -151,27 +152,6 @@ void unlet(Machine *m, Operands op) {
     }
 }
 
-void print(Machine *m, Operands op) {
-    Operand op1 = op.onea.op1;
-    Data d1 = op1.data;
-    switch (op1.mode) {
-        case IMMEDIATE:
-            printf("%u", d1.imv);
-            break;
-        case REGISTER: //printf("\n[REG] %u", d1.rega);
-            printf("%u", m->registers[d1.rega]);
-            // printf("\n[PRINT] Printed from reg%u", d1.rega);
-            break;
-        case DIRECT:
-            printf("%u", readData(m, d1.mema));
-            break;
-        case VARIABLE:
-            printf("%u", readData(m, getAddress(m, d1.name)));
-            break;
-    }
-    printf("\n");
-}
-
 void add(Machine *m, Operands op) {
     Operand op1 = op.twoa.op1;
     Operand op2 = op.twoa.op2;
@@ -232,7 +212,7 @@ void mul(Machine *m, Operands op) {
     }
 }
 
-void div(Machine *m, Operands op) {
+void divd(Machine *m, Operands op) {
     Operand op1 = op.twoa.op1;
     Operand op2 = op.twoa.op2;
     Data d2 = op2.data;
@@ -333,6 +313,51 @@ static char *formatString(char *input){
     }
     buffer = addToBuffer(buffer, &dummy, '\0');
     return buffer;
+}
+
+void print(Machine *m, Operands op) {
+    Data printData = op.twoa.op1.data;
+    char *printString = formatString(printData.ims);
+    char *args = op.twoa.op2.data.ims;
+    char **arguments = NULL;
+    size_t noa = 0, i = 0;
+    noa = splitIntoArray(args, &arguments, ',');
+    Operand *operands = (Operand *)malloc(sizeof(Operand)*noa);
+    int check = 1;
+    while(i < noa){
+        getOperand(&operands[i], arguments[i], &check);
+        if(!check){
+            free(operands);
+            printf("\n[ERROR] Print failed!");
+            break;
+        }
+        i++;
+    }
+    i = 0;
+    size_t count = 0;
+    size_t size = strlen(printString);
+    while(i < size){
+        char toPrint = printString[i];
+        if(toPrint == '%' && (i < size-1)){
+            char next = printString[++i];
+            if(next == 'd'){
+                printf("%u", getVal(operands[count], m));
+                count++;
+                if(count > noa){
+                    free(operands);
+                    printf("\n[ERROR] Less arguments in print!");
+                    break;
+                }
+            }
+            else{
+                printf("%c%c", toPrint, next);
+            }
+        }
+        else
+            printf("%c", toPrint);
+        i++;
+    }
+    free(operands);
 }
 
 void inpti(Machine *m, Operands op){
