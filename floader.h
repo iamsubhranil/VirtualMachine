@@ -16,6 +16,6 @@ void loadFunctions(int *check);
 
 Function *getFunction(char *invokation);
 
-void checkOperand(Function *function, Operand op, int opnum, int *check);
+void checkOperand(Function *function, Operand *op, int opnum, int *check);
 
 #endif

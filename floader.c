@@ -11,9 +11,14 @@
 
 static Function *functions = NULL;
 
-void checkOperand(Function *func, Operand o, int opnum, int *check){
+void checkOperand(Function *func, Operand *o, int opnum, int *check){
     if(*check == 0)
         return;
+    if(o->mode == 0){
+        printf("\n[ERROR] Missing operand %d for function %s!", opnum, func->invokation);
+        *check = 0;
+        return;
+    }
     
     if(opnum > (func->format - base_format)){
         printf("\n[VALIDATOR:ERROR] Number of operands for %s must not exceed %u!", func->invokation, func->format - base_format);
@@ -23,12 +28,12 @@ void checkOperand(Function *func, Operand o, int opnum, int *check){
     uint8_t *allowedModes = func->expectedArguments[opnum - 1];
     int i = 0;
     while(allowedModes[i] != 0x2f){
-        if(o.mode == allowedModes[i])
+        if(o->mode == allowedModes[i])
             return;
         i++;
     }
 
-    printf("\n[VALIDATOR:ERROR] Bad addressing mode %s for operand %d of instruction %s!", modeNames[o.mode-base_mode], opnum, func->invokation);
+    printf("\n[VALIDATOR:ERROR] Bad addressing mode %s for operand %d of instruction %s!", modeNames[o->mode-base_mode], opnum, func->invokation);
     *check = 0;
 }
 

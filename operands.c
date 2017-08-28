@@ -20,6 +20,11 @@ static int checkVariableName(char *val) {
 void getOperand(Operand *op, char *val, int *insert) {
     if (!*insert)
         return;
+    if(val == NULL){
+        op->mode = 0;
+        return;
+    }
+
     uint8_t addressingMode = 0;
     if (val[0] == '@')
         addressingMode = DIRECT;

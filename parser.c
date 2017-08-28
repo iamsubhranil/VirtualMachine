@@ -63,7 +63,7 @@ Instructions * parseInput(char *filename, int *check) {
             case ONE_ADDRESS: {
                                   token = strtok(NULL, " ");
                                   getOperand(&(os->onea.op1), token, &insert);
-                                  checkOperand(function, os->onea.op1, 1, &insert);
+                                  checkOperand(function, &(os->onea.op1), 1, &insert);
                                   *check = insert;
                                   break;
                               }
@@ -72,10 +72,10 @@ Instructions * parseInput(char *filename, int *check) {
                                   Operand *op2 = &(os->twoa.op2);
                                   token = strtok(NULL, " ");
                                   getOperand(op1, token, &insert);
-                                  checkOperand(function, *op1, 1, &insert);
+                                  checkOperand(function, op1, 1, &insert);
                                   token = strtok(NULL, " ");
                                   getOperand(op2, token, &insert);
-                                  checkOperand(function, *op2, 2, &insert);
+                                  checkOperand(function, op2, 2, &insert);
                                   *check = insert;
                                   break;
                               }
@@ -86,15 +86,15 @@ Instructions * parseInput(char *filename, int *check) {
 
                                     token = strtok(NULL, " ");
                                     getOperand(op1, token, &insert);
-                                    checkOperand(function, *op1, 1, &insert);
+                                    checkOperand(function, op1, 1, &insert);
 
                                     token = strtok(NULL, " ");
                                     getOperand(op2, token, &insert);
-                                    checkOperand(function, *op2, 2, &insert);
+                                    checkOperand(function, op2, 2, &insert);
 
                                     token = strtok(NULL, " ");
                                     getOperand(op3, token, &insert);
-                                    checkOperand(function, *op3, 3, &insert);
+                                    checkOperand(function, op3, 3, &insert);
 
                                     *check = insert;
                                     break;
