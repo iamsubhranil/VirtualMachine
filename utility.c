@@ -71,3 +71,50 @@ int digit(char c) {
 int aldigit(char c) {
     return alpha(c) || digit(c);
 }
+
+/* Splits the input string into words using the given delimiter.
+ * This method is purely dynamic in nature, meaning it'll 
+ * automatically add all words in the given string separated by 
+ * the given delimiter into a string array. The size of the array 
+ * will be returned after the separation is complete.
+ *
+ *
+ * Arguments => input : the input string to split
+ *              output : pointer to the string array in which
+ *                      the parts will be stored
+ *              toSplit : the character to be used as the delimiter
+ *
+ * Returns => number of parts in the output part array
+ *
+ */
+size_t splitIntoArray(const char *input, char ***output, const char toSplit){
+    if(input==NULL)
+        return 0;
+    size_t count = 0, dummy = 0;
+    size_t len = strlen(input), i = 0;
+    char *buffer = NULL;
+    *output = NULL;
+    i = 0;
+    while(i < len){
+        char presentChar = input[i];
+        if(presentChar == toSplit){
+            buffer = addToBuffer(buffer, &dummy, '\0');
+            *output = (char **)realloc(*output, (sizeof(char *)*(count+1)));
+            (*output)[count] = buffer;
+            count++;
+            buffer = NULL;
+            dummy = 0;
+        }
+        else{
+            buffer = addToBuffer(buffer, &dummy, presentChar);
+        }
+        i++;
+    }
+    if(buffer != NULL && buffer[0] != '\0'){
+        buffer = addToBuffer(buffer, &dummy, '\0');
+        *output = (char **)realloc(*output, sizeof(char *) * (count+1));
+        (*output)[count] = buffer;
+        count++;
+    }
+    return count;
+}

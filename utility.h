@@ -16,4 +16,5 @@ int alpha(char c);
 
 int aldigit(char c);
 
+size_t splitIntoArray(const char *input, char ***output, const char toSplit);
 #endif
