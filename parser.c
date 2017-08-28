@@ -26,7 +26,9 @@ Instructions * parseInput(char *filename, int *check) {
     }
     loadFunctions(check);
     if(!(*check)){
-        fclose(fp);
+        printf("\n[ERROR] Unable to load function definitions!");
+        if(fp!=stdin)
+            fclose(fp);
         return NULL;
     }
     int insert = 1;
@@ -49,14 +51,14 @@ Instructions * parseInput(char *filename, int *check) {
         Operands *os = &(is->operands);
         //printf("\n[INPUT] [%s]",token);
         Function *function = getFunction(token);
-        is->opcode = function->opcode;
-        //printf("\n[INFO] Function : %s Opcode : 0x%x", function->invokation, function->opcode);
-        is->format = function->format;
         if(function == NULL){
             printf("\n[PARSER:ERROR] Unknown function %s!", token);
             add--;
             continue;
         }
+        is->opcode = function->opcode;
+        //printf("\n[INFO] Function : %s Opcode : 0x%x", function->invokation, function->opcode);
+        is->format = function->format;
         switch (is->format) {
             case ONE_ADDRESS: {
                                   token = strtok(NULL, " ");
