@@ -6,9 +6,10 @@
 
 /* Machine cycle primitives */
 
+#define sizeof_arr(x) (sizeof(x)/sizeof(x[0]))
+
 static void execute(Machine *m, Instruction ins) {
-    //printf("\n[INFO] Opcode to be executed : 0x%x\n", ins.opcode);
-    if ((ins.opcode - 0xA0) > NUMFUNCS)
+    if ((ins.opcode - 0xA0) > sizeof_arr(func))
         printf("\n[ERROR] Undefined opcode 0x%x!", ins.opcode);
     else
         func[ins.opcode - 0xA0](m, ins.operands);

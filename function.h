@@ -6,8 +6,6 @@
 
 typedef void (*function)(Machine *m, Operands op);
 
-#define NUMFUNCS 21 // Update this counter whenever a new function is a added
-
 void incr(Machine *m, Operands op);
 
 void decr(Machine *m, Operands op);
