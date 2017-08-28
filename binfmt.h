@@ -4,7 +4,7 @@
 #include<stdint.h>
 
 #define MAGIC 0x564D4558 // VMEX
-#define VERSION 8
+#define VERSION 10
 
 /* Binary header and footer */
 
