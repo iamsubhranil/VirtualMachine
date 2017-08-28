@@ -391,3 +391,21 @@ void prmptl(Machine *m, Operands op){
     prompt(m, op);
     printf("\n");
 }
+
+void mod(Machine *m, Operands op){
+    uint32_t val = getVal(op.twoa.op2, m), oldval = 0;
+    Operand dest = op.twoa.op1;
+    switch(dest.mode){
+        case REGISTER:
+            m->registers[dest.data.rega] = m->registers[dest.data.rega] % val;
+            break;
+        case DIRECT:
+            oldval = getVal(dest, m) % val;
+            writeData(m, dest.data.mema, oldval);
+            break;
+        case VARIABLE:
+            oldval = getVal(dest, m) % val;
+            writeData(m, getAddress(m, dest.data.name), oldval);
+            break;
+    }
+}

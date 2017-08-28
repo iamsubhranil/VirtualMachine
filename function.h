@@ -48,7 +48,9 @@ void prompt(Machine *m, Operands op);
 
 void prmptl(Machine *m, Operands op);
 
+void mod(Machine *m, Operands op);
+
 static function func[] = {incr, decr, unlet, print, load, store, let, halt, add, sub, mul, divd, setl, jne, jlt, jgt, prntl, inpti, inpts,
-                            prompt, prmptl};
+                            prompt, prmptl, mod};
 
 #endif
