@@ -33,6 +33,6 @@ void freeInstructions(Instructions *ins){
 		freeInstruction(ins->instructions[i]);
 		i++;
 	}
-	free(ins->instructions);
+	//free(ins->instructions);
 	free(ins);
 }
