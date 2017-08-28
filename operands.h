@@ -9,12 +9,13 @@
 #define REGISTER 0x21
 #define DIRECT 0x22
 #define VARIABLE 0x23
-
-
+#define IMMEDIATES 0x24 // Immediate string
+#define TERMINATOR 0x2f // To denote the end of an expectedArguments list
 /* Data types */
 
 typedef union {
-    uint32_t imv; // Immediate addressing
+    uint32_t imv; // Immediate value
+    char *ims; // Immediate string
     uint8_t rega; // Register addressing
     uint16_t mema; // Direct addressing
     char *name; // Variable addressing
@@ -52,5 +53,9 @@ typedef union {
     TwoAddress twoa;
     ThreeAddress threa;
 } Operands;
+
+void getOperand(Operand *op, char *val, int *insert);
+
+//void checkOperand(Operand op, uint8_t function, int opnum, int *insert);
 
 #endif

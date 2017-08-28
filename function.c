@@ -1,4 +1,5 @@
 #include"function.h"
+#include"utility.h"
 #include<stdio.h>
 
 void incr(Machine *m, Operands op) {
@@ -303,4 +304,51 @@ void jgt(Machine *m, Operands op) {
     Operand dest = op.threa.op3;
     if (getVal(source, m) > getVal(dest, m) && address!=0)
         m->pc = address;
+}
+
+static char *formatString(char *input){
+    char *buffer = NULL;
+    size_t dummy = 0, len = strlen(input), i = 0;
+    while(i < len){
+        char p = input[i];
+        if(p=='\\' && i < (len-1)){
+            char n = input[++i];
+            if(n=='s')
+                buffer = addToBuffer(buffer, &dummy, ' ');
+            else if(n=='n')
+                buffer = addToBuffer(buffer, &dummy, '\n');
+            else{
+                buffer = addToBuffer(buffer, &dummy, p);
+                buffer = addToBuffer(buffer, &dummy, n);
+            }
+        }
+        else
+            buffer = addToBuffer(buffer, &dummy, p);
+        i++;
+    }
+    buffer = addToBuffer(buffer, &dummy, '\0');
+    return buffer;
+}
+
+void inpti(Machine *m, Operands op){
+    char *prompt = formatString(op.twoa.op1.data.ims);
+    uint32_t input;
+    printf("%s", prompt);
+    scanf("%u", &input);
+    Operand dest = op.twoa.op2;
+    if(dest.mode == REGISTER)
+        m->registers[dest.data.rega] = input;
+    else if(dest.mode == DIRECT)
+        writeData(m, dest.data.mema, input);
+    else if(dest.mode == VARIABLE)
+        writeData(m, getAddress(m, dest.data.name), input);
+}
+
+void inpts(Machine *m, Operands op){
+    printf("\n[INPTS:ERROR] inpts is not defined yet!");
+}
+
+void prntl(Machine *m, Operands op){
+    print(m, op);
+    printf("\n");
 }
