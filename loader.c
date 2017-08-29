@@ -42,7 +42,6 @@ Instructions * loadBinary(char *filename, int *check) {
     if (!fp) {
         printf("\n[ERROR] Unable to open file %s!\n", filename);
         *check = 0;
-        fclose(fp);
         return NULL;
     }
     Header h;
