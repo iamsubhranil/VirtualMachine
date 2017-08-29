@@ -20,13 +20,11 @@ Instructions * parseInput(char *filename, int *check) {
         if (!fp) {
             printf("\n[ERROR] Unable to read file %s!", filename);
             *check = 0;
-            fclose(fp);
             return 0;
         }
     }
     loadFunctions(check);
     if(!(*check)){
-        printf("\n[ERROR] Unable to load function definitions!");
         if(fp!=stdin)
             fclose(fp);
         return NULL;
@@ -109,7 +107,8 @@ Instructions * parseInput(char *filename, int *check) {
         if (is->opcode == HALT)
             insert = 0;
     }
-    fclose(fp);
+    if(fp!=stdin)
+        fclose(fp);
     newIns->noi = add;
     return newIns;
 }
