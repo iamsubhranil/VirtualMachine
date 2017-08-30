@@ -31,7 +31,7 @@ void checkOperand(Function *func, Operand *o, int opnum, int *check){
     }
     uint8_t *allowedModes = func->expectedArguments[opnum - 1];
     int i = 0;
-    while(allowedModes[i] != 0x2f){
+    while(allowedModes[i] != TERMINATOR){
         if(o->mode == allowedModes[i])
             return;
         i++;
