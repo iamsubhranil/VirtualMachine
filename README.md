@@ -8,7 +8,7 @@ This is a virtual machine inbuilt with a tiny compiler for the virtual architech
 The machine is register based, with 16 GPRs. It also simulates a RAM-like form of storage, and because of that maintains a symbol table to provide the feature of variables. The machine offers four addressing modes :
 1. Register addressing mode : To perform an operation directly on a register, `RN` is the notation of Nth register.
 2. Direct addressing mode : To perform an operation directly on a memory address, which is used internally for all variable based operations. To specify a operand using direct addressing mode, precede the address with `@`.
-3. Variable addressing mode : To perform an operation on memory using a variable name. Any operand starting with an underscore `_` is considered as a variable. However, in a compiled program, all variable addressings are converted to direct addressings.
+3. Variable addressing mode : To perform an operation on memory using a variable name. Any operand starting with an underscore `_` is considered as a variable.
 4. Immediate addressing mode : This mode is used to interact with the environment, i.e. to load a value in memory, to perform arithmetic operations on a variable, etc. To specify an immediate constant, precede the value with `#`.
 5. Immediate string addressing mode : This mode is used to specify a prompt in various i/o calls. To specify an immediate string operand, precede the string with `^`.
 ##### Instruction set
