@@ -118,3 +118,39 @@ size_t splitIntoArray(const char *input, char ***output, const char toSplit){
     }
     return count;
 }
+
+/* Returns the next line of a particular input stream.
+ *
+ * If you have embedded some file into your program or
+ * just want to split into lines a string input, this
+ * method will do just that. It'll return the next line,
+ * i.e. the part of string from index pointed by pointer
+ * to the first newline or line feed character. The pointer
+ * will be automatically updated to point to the next
+ * character after \n or \r, and hence can be passed between
+ * subsequent function calls without modifications.
+ *
+ * Arguments => input - the input stream
+ *              pointer - the start index
+ *
+ * Returns => the next line, NULL terminated
+ *
+ */
+
+char *getNextLine(char *input, size_t *pointer){
+    char *buffer = NULL;
+    size_t i = *pointer;
+    size_t dummy = 0;
+    char c = input[i];
+    while(i<strlen(input) && c!='\n' && c!='\r'){
+        buffer = addToBuffer(buffer, &dummy, c);
+        i++;
+        (*pointer)++;
+        c = input[i];
+    }
+    (*pointer)++;
+    if(c=='\r')
+        (*pointer)++;
+    buffer = addToBuffer(buffer, &dummy, '\0');
+    return buffer;
+}

@@ -55,24 +55,6 @@ Function *getFunction(char *in){
     return NULL;
 }
 
-char *getNextLine(char *input, size_t *pointer){
-    char *buffer = NULL;
-    size_t i = *pointer;
-    size_t dummy = 0;
-    char c = input[i];
-    while(i<strlen(input) && c!='\n' && c!='\r'){
-        buffer = addToBuffer(buffer, &dummy, c);
-        i++;
-        (*pointer)++;
-        c = input[i];
-    }
-    (*pointer)++;
-    if(c=='\r')
-        (*pointer)++;
-    buffer = addToBuffer(buffer, &dummy, '\0');
-    return buffer;
-}
-
 void loadFunctions(int *check){
     if(strlen(functionDataStart) == 0){
         printf("\n[ERROR] Unable to load function definitions!");
