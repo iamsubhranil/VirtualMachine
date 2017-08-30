@@ -9,7 +9,11 @@
 #define base_mode 0x20
 #define base_format 0x30
 
+
 static Function *functions = NULL;
+extern char functionDataStart[] asm("_binary_definition_parser_start");
+extern char functionDataEnd[] asm("_binary_definition_parser_end");
+
 
 void checkOperand(Function *func, Operand *o, int opnum, int *check){
     if(*check == 0)
@@ -51,20 +55,37 @@ Function *getFunction(char *in){
     return NULL;
 }
 
+char *getNextLine(char *input, size_t *pointer){
+    char *buffer = NULL;
+    size_t i = *pointer;
+    size_t dummy = 0;
+    char c = input[i];
+    while(i<strlen(input) && c!='\n' && c!='\r'){
+        buffer = addToBuffer(buffer, &dummy, c);
+        i++;
+        (*pointer)++;
+        c = input[i];
+    }
+    (*pointer)++;
+    if(c=='\r')
+        (*pointer)++;
+    buffer = addToBuffer(buffer, &dummy, '\0');
+    return buffer;
+}
+
 void loadFunctions(int *check){
-    FILE *fp = fopen("definition.parser", "rb");
-    if(!fp){
+    if(strlen(functionDataStart) == 0){
         printf("\n[ERROR] Unable to load function definitions!");
         *check = 0;
         return;
     }
     uint8_t count = 0;
     Function *prev = NULL;
-    size_t size = 1;
+    size_t size = 1, lineCount = 0;
     while(size > 0){
         char *definition = NULL, **temp = NULL;
         size_t dummy;
-        size = readline(&definition, fp); // func 3 1:2,3,4 2:3,4
+        definition = getNextLine(functionDataStart, &lineCount); // func 3 1:2,3,4 2:3,4
         if(definition[0]=='#')
             continue;
         //printf("\n%s\n", definition);
