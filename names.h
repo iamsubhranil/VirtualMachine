@@ -5,6 +5,7 @@ static char *insNames[] = {"incr", "decr", "unlet", "print", "load", "store", "l
                            "setl", "jne", "jlt", "jgt", "prntl", "inpti", "inpts", "prompt", "prmptl", "mod"};
 static char *formatNames[] = {"zeroa", "onea", "twoa", "threa"};
 static char *modeNames[] = {"imm", "reg", "dir", "var", "ims"};
+static char *modeNamesVerbose[] = {"immediate", "register", "direct", "variable", "immediate string"};
 static char *binaryFormat[] = {"FLEXIBLE", "OPTIMISED"};
 static char *cellNames[] = {"INSTRUCTION", "DATA"};
 

@@ -37,7 +37,7 @@ void checkOperand(Function *func, Operand *o, int opnum, int *check){
         i++;
     }
 
-    printf("\n[VALIDATOR:ERROR] Bad addressing mode %s for operand %d of instruction %s!", modeNames[o->mode-base_mode], opnum, func->invokation);
+    printf("\n[VALIDATOR:ERROR] Bad addressing mode `%s` for operand %d of instruction %s!", modeNamesVerbose[o->mode-base_mode], opnum, func->invokation);
     *check = 0;
 }
 
