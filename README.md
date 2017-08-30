@@ -43,7 +43,7 @@ There are presently 19 operations available to the machine.
 10. divd : Divides a variable, register or value by another variable or register.
 
             divd #50 _a _b // (b = a/50)
-11. print : Prints the value of a variable or register to the output (See operands.h).
+11. print : Prints the value of a variable or register to the output (See opcodes.h).
 
             print ^%d ^_a
 12. halt : Stops the machine. Every program must call halt at the end.
@@ -66,7 +66,7 @@ There are presently 19 operations available to the machine.
 17. prntl : Print a full line. This basically `print` + `\n`.
 
             prntl ^%d ^_a
-18. inpti : Input a integer from the user (See operands.h).
+18. inpti : Input a integer from the user (See opcodes.h).
 
             inpti ^\sEnter\sa\snumber\s:\s _number // Output : 'Enter a number : ', user input will be stored in "number" variable
 19. mod : Perform arithmetic modulus between two arguments.
