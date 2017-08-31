@@ -34,6 +34,7 @@ Instructions * parseInput(char *filename, int *check) {
     size_t size;
     char *token;
     uint16_t add = 0;
+    uint8_t lastins = 0;
     Instructions *newIns = (Instructions *)malloc(sizeof(Instructions));
     newIns->instructions = NULL;
     newIns->noi = 0;
@@ -42,8 +43,12 @@ Instructions * parseInput(char *filename, int *check) {
             printf("\n > ");
         size = readline(&buff, fp);
         token = strtok(buff, " ");
-        if(token==NULL)
-            break;
+        if(token==NULL){
+            if(lastins != HALT)
+                token = strdup("halt");
+            else
+                break;
+        }
         newIns->instructions = (Instruction *)realloc(newIns->instructions, ++add*sizeof(Instruction));
         Instruction *is = &(newIns->instructions[add-1]);
         Operands *os = &(is->operands);
@@ -55,6 +60,7 @@ Instructions * parseInput(char *filename, int *check) {
             continue;
         }
         is->opcode = function->opcode;
+        lastins = is->opcode;
         //printf("\n[INFO] Function : %s Opcode : 0x%x", function->invokation, function->opcode);
         is->format = function->format;
         switch (is->format) {
