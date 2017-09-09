@@ -38,16 +38,18 @@ Instructions * parseInput(char *filename, int *check) {
     Instructions *newIns = (Instructions *)malloc(sizeof(Instructions));
     newIns->instructions = NULL;
     newIns->noi = 0;
+    char *defName = NULL; // Present definition name
+    int maind = 0, mainf = 0; // Check if main is defined
+    Function *def = getFunction("def"), *enddef = getFunction("enddef");
     while (insert) {
         if (fp == stdin)
             printf("\n > ");
         size = readline(&buff, fp);
+        if(size > 0 && (buff[0] == '#' || buff[0] == ' '))
+            continue;
         token = strtok(buff, " ");
         if(token==NULL){
-            if(lastins != HALT)
-                token = strdup("halt");
-            else
-                break;
+            token = strdup("halt");
         }
         newIns->instructions = (Instruction *)realloc(newIns->instructions, ++add*sizeof(Instruction));
         Instruction *is = &(newIns->instructions[add-1]);
@@ -58,17 +60,49 @@ Instructions * parseInput(char *filename, int *check) {
             printf("\n[PARSER:ERROR] Unknown function %s!", token);
             add--;
             continue;
-        }
+        } 
         is->opcode = function->opcode;
-        lastins = is->opcode;
         //printf("\n[INFO] Function : %s Opcode : 0x%x", function->invokation, function->opcode);
         is->format = function->format;
+
         switch (is->format) {
             case ONE_ADDRESS: {
                                   token = strtok(NULL, " ");
                                   getOperand(&(os->onea.op1), token, &insert);
                                   checkOperand(function, &(os->onea.op1), 1, &insert);
-                                  *check = insert;
+
+                                  if(insert && is->opcode == def->opcode){
+                                      if(defName != NULL){
+                                          printf("\n[PARSER:ERROR] Nested functions not supported (function %s inside %s)!", stripFirst(token), stripFirst(defName));
+                                          insert = 0;
+                                          break;
+                                      }
+                                      else{
+                                          defName = strdup(token);
+                                          if(strcmp(defName, "_main") == 0)
+                                              maind = 1;
+                                      }
+                                  }
+                                  else if(insert && is->opcode == enddef->opcode){
+                                      if(defName == NULL || strcmp(defName, token)!=0){
+                                          printf("\n[PARSER:ERROR] Bad `enddef`!");
+                                          insert = 0;
+                                          break;
+                                      }
+                                      else{
+                                          if(strcmp(defName, "_main") == 0){
+                                              mainf = 1;
+                                              insert = 2;
+                                          }
+                                          free(defName);
+                                          defName = NULL;
+                                      }
+
+                                  }
+
+                                  *check = insert > 0;
+                                  if(insert == 2)
+                                      insert = 0;
                                   break;
                               }
             case TWO_ADDRESS: {
@@ -103,16 +137,27 @@ Instructions * parseInput(char *filename, int *check) {
                                     *check = insert;
                                     break;
                                 }
-            case ZERO_ADDRESS: {
+            case ZERO_ADDRESS: { 
                                    os->zeroa.dummy = '0';
                                    break;
                                }
         }
+        lastins = is->opcode;
         free(buff);
         //printMem(m, add);
         if (is->opcode == HALT)
             insert = 0;
     }
+
+    if(!maind){
+        printf("\n[PARSER:ERROR] main is not defined!");
+        *check = 0;
+    }
+    else if(!mainf){
+        printf("\n[PARSER:ERROR] main is not enclosed!");
+        *check = 0;
+    }
+
     if(fp!=stdin)
         fclose(fp);
     newIns->noi = add;

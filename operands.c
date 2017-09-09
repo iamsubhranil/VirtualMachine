@@ -5,12 +5,10 @@
 #include <stdlib.h>
 
 static int checkVariableName(char *val) {
-    if (!alpha(val[0]))
-        return 0;
     int i = 1;
     int last = strlen(val);
     while (i < last) {
-        if (!(aldigit(val[i]) || val[i] == '_'))
+        if (aldigit(val[i])==0 && val[i]!='_')
             return 0;
         i++;
     }

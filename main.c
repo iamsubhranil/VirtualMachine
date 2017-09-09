@@ -118,7 +118,5 @@ int main(int argc, char **argv) {
     destroyMachine(m);
     freeInstructions(ins);
 
-    printf("\n");
-
     return 0;
 }

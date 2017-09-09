@@ -36,6 +36,7 @@ static void putVal(Operand o, Machine *m, uint32_t val){
             break;
     }
 }
+
 void incr(Machine *m, Operands op) {
     uint32_t val = getVal(op.onea.op1, m);
     putVal(op.onea.op1, m, val+1);
@@ -119,6 +120,7 @@ void setl(Machine *m, Operands op) {
             writeData(m, op1.data.mema, m->pc + 1);
             break;
         case VARIABLE: {
+            //               printf("\nSetting label %s to %u", op1.data.name, m->pc+1);
             uint16_t ad = getAddress(m, op1.data.name);
             writeData(m, ad, m->pc + 1);
         }
@@ -163,6 +165,20 @@ void jgt(Machine *m, Operands op) {
     Operand source = op.threa.op2;
     Operand dest = op.threa.op3;
     if (getVal(source, m) > getVal(dest, m) && address!=0)
+        m->pc = address;
+}
+
+void jmp(Machine *m, Operands op) {
+    uint16_t address = jmpAddress(m, op.threa.op1);
+    if (address!=0)
+        m->pc = address;
+}
+
+void jeq(Machine *m, Operands op) {
+    uint16_t address = jmpAddress(m, op.threa.op1);
+    Operand source = op.threa.op2;
+    Operand dest = op.threa.op3;
+    if (getVal(source, m) == getVal(dest, m) && address!=0)
         m->pc = address;
 }
 
@@ -275,4 +291,61 @@ void prmptl(Machine *m, Operands op){
 void mod(Machine *m, Operands op){
     uint32_t val1 = getVal(op.threa.op1, m), val2 = getVal(op.threa.op2, m);
     putVal(op.threa.op3, m, val1 % val2);
+}
+
+void def(Machine *m, Operands op){
+    char *fName = op.onea.op1.data.name;
+    Operands *label = (Operands *)malloc(sizeof(Operands));
+    label->onea.op1.mode = VARIABLE;
+    label->onea.op1.data.name = strcat(strdup("__start__def__"), strdup(fName));
+    setl(m, *label);
+    free(label);
+}
+
+void call(Machine *m, Operands op){
+    char *args = op.threa.op2.data.ims;
+    char **arglist = NULL;
+    size_t length = splitIntoArray(args, &arglist, ',');
+    size_t i = 0;
+    int insert = 1;
+    Operands ops;
+    ops.onea.op1.mode = VARIABLE;
+    ops.onea.op1.data.name = strcat(strdup("__end__def__"),strdup(op.onea.op1.data.name));
+    setl(m, ops);
+    while(i < length){
+        Operand op;
+        getOperand(&op, arglist[i], &insert);
+        if(!insert){
+            printf("[ERROR] Bad argument %s!", arglist[i]);
+            i++;
+            continue;
+        }
+        else if(op.mode == IMMEDIATES){
+            printf("[ERROR] Unable to pass immediate string [%s] as argument!", arglist[i]);
+            i++;
+            continue;
+        }
+        uint32_t val = getVal(op, m);
+        ops.twoa.op1.mode = IMMEDIATE;
+        ops.twoa.op1.data.imv = val;
+        ops.twoa.op2.mode = VARIABLE;
+        char toString[5];
+        sprintf(toString, "%d", (int)i);
+        ops.twoa.op2.data.name = strcat(strdup("arg"), toString);
+        let(m, ops);
+        i++;
+    }
+    op.twoa.op1.data.name = strcat(strdup("__start__def__"), op.twoa.op1.data.name);
+    m->pc = jmpAddress(m, op.twoa.op1);
+}
+
+void enddef(Machine *m, Operands op){
+    if(strcmp(op.onea.op1.data.name, "main") == 0)
+        halt(m, op);
+    else{
+        char *fName = strdup(op.onea.op1.data.name);
+        op.onea.op1.mode = VARIABLE;
+        op.onea.op1.data.name = strcat(strdup("__end__def__"), fName);
+        m->pc = jmpAddress(m, op.onea.op1);
+    }
 }

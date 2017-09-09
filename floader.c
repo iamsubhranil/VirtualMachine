@@ -61,6 +61,8 @@ void loadFunctions(int *check){
         *check = 0;
         return;
     }
+    else if(functions!=NULL)
+        return;
     uint8_t count = 0;
     Function *prev = NULL;
     size_t size = 1, lineCount = 0;

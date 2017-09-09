@@ -50,7 +50,17 @@ void prmptl(Machine *m, Operands op);
 
 void mod(Machine *m, Operands op);
 
+void def(Machine *m, Operands op);
+
+void call(Machine *m, Operands op);
+
+void enddef(Machine *m, Operands op);
+
+void jeq(Machine *m, Operands op);
+
+void jmp(Machine *m, Operands op);
+
 static function func[] = {incr, decr, unlet, print, load, store, let, halt, add, sub, mul, divd, setl, jne, jlt, jgt, prntl, inpti, inpts,
-                            prompt, prmptl, mod};
+                            prompt, prmptl, mod, def, call, enddef, jeq, jmp};
 
 #endif

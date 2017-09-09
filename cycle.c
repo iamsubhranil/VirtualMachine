@@ -1,8 +1,10 @@
-#include"cycle.h"
-#include"opcodes.h"
-#include"function.h"
+#include "cycle.h"
+#include "opcodes.h"
+#include "function.h"
+#include "floader.h"
 
-#include<stdio.h>
+#include <string.h>
+#include <stdio.h>
 
 /* Machine cycle primitives */
 
@@ -33,7 +35,34 @@ static Cell fetch(Machine *m) {
     return m->memory[pc];
 }
 
+static void dryRun(Machine *m){
+    uint16_t i = 0;
+    int c = 0;
+    loadFunctions(&c);
+    Function *enddef = getFunction(strdup("enddef")), *def = getFunction(strdup("def")), *halt = getFunction(strdup("halt")),
+        *setl = getFunction(strdup("setl"));
+    int cont = 1;
+    while(cont){
+        m->pc = i;
+        Instruction ins = decode(fetch(m));
+        if(ins.opcode == def->opcode || ins.opcode == setl->opcode)
+            execute(m, ins);
+        else if(ins.opcode == enddef->opcode){
+            if(strcmp(ins.operands.onea.op1.data.name, "main")==0)
+                cont = 0;
+        }
+        else if(ins.opcode == halt->opcode)
+            cont = 0;
+        i++;
+    }
+}
+
 void run(Machine *m) {
+    dryRun(m);
+    uint16_t l = getAddress(m, strdup("__start__def__main"));
+    uint16_t startAddress = readData(m, l);
+    //printf("\nStarting from %u!", startAddress);
+    m->pc = startAddress;
     while (!m->halt) {
         //printf("\n[MACHINE] Running!");
         Cell cell = fetch(m);
