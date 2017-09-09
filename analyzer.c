@@ -1,9 +1,9 @@
 #include "analyzer.h"
-#include "stdint.h"
-#include "stdio.h"
+#include <stdint.h>
+#include <stdio.h>
 #include "names.h"
-#include "stdlib.h"
-#include "string.h"
+#include <stdlib.h>
+#include <string.h>
 
 static char **strings = NULL;
 static int count = 0;

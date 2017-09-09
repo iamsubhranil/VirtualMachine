@@ -1,6 +1,6 @@
 #include"writer.h"
 #include"binfmt.h"
-#include"string.h"
+#include<string.h>
 #include<stdio.h>
 
 static void writeHeader(FILE *fp, uint16_t length) {
