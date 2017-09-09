@@ -72,6 +72,8 @@ void loadFunctions(int *check){
         definition = getNextLine(functionDataStart, &lineCount); // func 3 1:2,3,4 2:3,4
         if(definition[0]=='#')
             continue;
+        if(strcmp(definition, "definition_end") == 0)
+            break;
         //printf("\n%s\n", definition);
         Function *now = (Function *)malloc(sizeof(Function));
         now->opcode = base_func + count;
