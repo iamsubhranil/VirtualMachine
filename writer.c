@@ -32,7 +32,7 @@ static void writeOperand(Operand op, FILE *fp) {
     //printf("\t%8x", op.mode);
     switch (op.mode) {
         case IMMEDIATE:
-            fwrite(&(d.imv), sizeof(uint32_t), 1, fp);
+            fwrite(&(d.imv), sizeof(int32_t), 1, fp);
             //printf("\t%4x", d.imv);
             break;
         case REGISTER:

@@ -14,7 +14,7 @@
 /* Data types */
 
 typedef union {
-    uint32_t imv; // Immediate value
+    int32_t imv; // Immediate value
     char *ims; // Immediate string
     uint8_t rega; // Register addressing
     uint16_t mema; // Direct addressing

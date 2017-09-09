@@ -20,7 +20,7 @@ static void readOperand(Operand *op, FILE *fp) {
     fread(&(op->mode), sizeof(uint8_t), 1, fp);
     switch (op->mode) {
         case IMMEDIATE:
-            fread(&(op->data.imv), sizeof(uint32_t), 1, fp);
+            fread(&(op->data.imv), sizeof(int32_t), 1, fp);
             break;
         case REGISTER:
             fread(&(op->data.rega), sizeof(uint8_t), 1, fp);

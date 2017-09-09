@@ -3,7 +3,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 
-static uint32_t getVal(Operand o, Machine *m) {
+static int32_t getVal(Operand o, Machine *m) {
     Data d1 = o.data;
     switch (o.mode) {
         case IMMEDIATE:
@@ -22,7 +22,7 @@ static uint32_t getVal(Operand o, Machine *m) {
     return 0;
 }
 
-static void putVal(Operand o, Machine *m, uint32_t val){
+static void putVal(Operand o, Machine *m, int32_t val){
     Data d1 = o.data;
     switch(o.mode){
         case REGISTER:
@@ -38,17 +38,17 @@ static void putVal(Operand o, Machine *m, uint32_t val){
 }
 
 void incr(Machine *m, Operands op) {
-    uint32_t val = getVal(op.onea.op1, m);
+    int32_t val = getVal(op.onea.op1, m);
     putVal(op.onea.op1, m, val+1);
 }
 
 void decr(Machine *m, Operands op) {
-    uint32_t val = getVal(op.onea.op1, m);
+    int32_t val = getVal(op.onea.op1, m);
     putVal(op.onea.op1, m, val - 1); 
 }
 
 void let(Machine *m, Operands op) {
-    uint32_t val = getVal(op.twoa.op1, m);
+    int32_t val = getVal(op.twoa.op1, m);
     Operand op2 = op.twoa.op2;
     putVal(op2, m, val);
 }
@@ -88,28 +88,28 @@ void unlet(Machine *m, Operands op) {
 void add(Machine *m, Operands op) {
     Operand op1 = op.threa.op1;
     Operand op2 = op.threa.op2;
-    uint32_t readval1 = getVal(op1, m), readval2 = getVal(op2, m);
+    int32_t readval1 = getVal(op1, m), readval2 = getVal(op2, m);
     putVal(op.threa.op3, m, readval1 + readval2);
 }
 
 void sub(Machine *m, Operands op) {
     Operand op1 = op.threa.op1;
     Operand op2 = op.threa.op2;
-    uint32_t readval1 = getVal(op1, m), readval2 = getVal(op2, m); 
+    int32_t readval1 = getVal(op1, m), readval2 = getVal(op2, m); 
     putVal(op.threa.op3, m, readval1 - readval2);
 }
 
 void mul(Machine *m, Operands op) {
     Operand op1 = op.threa.op1;
     Operand op2 = op.threa.op2;
-    uint32_t readval1 = getVal(op1, m), readval2 = getVal(op2, m);
+    int32_t readval1 = getVal(op1, m), readval2 = getVal(op2, m);
     putVal(op.threa.op3, m, readval1 * readval2);
 }
 
 void divd(Machine *m, Operands op) {
     Operand op1 = op.threa.op1;
     Operand op2 = op.threa.op2;
-    uint32_t readval1 = getVal(op1, m), readval2 = getVal(op2, m);
+    int32_t readval1 = getVal(op1, m), readval2 = getVal(op2, m);
     putVal(op.threa.op3, m, readval1 / readval2);
 }
 
@@ -237,7 +237,7 @@ void print(Machine *m, Operands op) {
         if(toPrint == '%' && (i < size-1)){
             char next = printString[++i];
             if(next == 'd'){
-                printf("%u", getVal(operands[count], m));
+                printf("%d", getVal(operands[count], m));
                 count++;
                 if(count > noa){
                     printf("\n[ERROR] Less arguments in print!");
@@ -257,9 +257,9 @@ void print(Machine *m, Operands op) {
 
 void inpti(Machine *m, Operands op){
     char *prompt = formatString(op.twoa.op1.data.ims);
-    uint32_t input;
+    int32_t input;
     printf("%s", prompt);
-    scanf("%u", &input);
+    scanf("%d", &input);
     Operand dest = op.twoa.op2;
     if(dest.mode == REGISTER)
         m->registers[dest.data.rega] = input;
@@ -289,7 +289,7 @@ void prmptl(Machine *m, Operands op){
 }
 
 void mod(Machine *m, Operands op){
-    uint32_t val1 = getVal(op.threa.op1, m), val2 = getVal(op.threa.op2, m);
+    int32_t val1 = getVal(op.threa.op1, m), val2 = getVal(op.threa.op2, m);
     putVal(op.threa.op3, m, val1 % val2);
 }
 
@@ -325,7 +325,7 @@ void call(Machine *m, Operands op){
             i++;
             continue;
         }
-        uint32_t val = getVal(op, m);
+        int32_t val = getVal(op, m);
         ops.twoa.op1.mode = IMMEDIATE;
         ops.twoa.op1.data.imv = val;
         ops.twoa.op2.mode = VARIABLE;
