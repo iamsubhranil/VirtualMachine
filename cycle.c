@@ -61,6 +61,10 @@ static void dryRun(Machine *m){
 
 void run(Machine *m) {
     dryRun(m);
+    if(!symtLookup(m, strdup("__start__def__main"))){
+        printf("\n[ERROR] Unable to run! `main` is not defined!");
+        return;
+    }
     uint16_t l = getAddress(m, strdup("__start__def__main"));
     uint16_t startAddress = readData(m, l);
     //printf("\nStarting from %u!", startAddress);

@@ -3,11 +3,12 @@
 #include <string.h>
 #include <stdio.h>
 
-static void writeHeader(FILE *fp, uint16_t length) {
-    Header header = {MAGIC, VERSION, length};
+static void writeHeader(FILE *fp, uint16_t length, uint8_t isExecutable) {
+    Header header = {MAGIC, VERSION, length, isExecutable};
     fwrite(&(header.magic), sizeof(uint32_t), 1, fp);
     fwrite(&(header.version), sizeof(uint8_t), 1, fp);
     fwrite(&(header.numIns), sizeof(uint16_t), 1, fp);
+    fwrite(&(header.isExecutable), sizeof(uint8_t), 1, fp);
 }
 
 static void writeFooter(FILE *fp) {
@@ -61,7 +62,7 @@ static void writeOperands(Instruction i, FILE *fp) {
     }
 }
 
-void writeBinary(Instructions *ins, char *filename) {
+void writeBinary(Instructions *ins, char *filename, uint8_t isExecutable) {
     FILE *fp = fopen(filename, "wb");
     if (!fp) {
         printf("\n[ERROR] Unable to open file %s!", filename);
@@ -69,7 +70,7 @@ void writeBinary(Instructions *ins, char *filename) {
     }
     uint16_t i = 0;
     uint16_t length = ins->noi;
-    writeHeader(fp, length);
+    writeHeader(fp, length, isExecutable);
     //printf("\nOpcode\tFormat\tAddressingMode1\tValue1\tAddressingMode2\tValue2\tAddressingMode3\tValue3");
     //printf("\n======\t======\t===============\t======\t===============\t======\t===============\t======");
     while (i < length) {

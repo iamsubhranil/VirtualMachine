@@ -1,10 +1,10 @@
 #ifndef BINFMT_H
 #define BINFMT_H
 
-#include<stdint.h>
+#include <stdint.h>
 
 #define MAGIC 0x564D4558 // VMEX
-#define VERSION 11
+#define VERSION 12
 
 /* Binary header and footer */
 
@@ -12,6 +12,7 @@ typedef struct {
     uint32_t magic;
     uint8_t version;
     uint16_t numIns;
+    uint8_t isExecutable;
 } Header;
 
 /* Binary Format */

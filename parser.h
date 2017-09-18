@@ -5,6 +5,6 @@
 #include<stdint.h>
 #include"instruction.h"
 
-Instructions * parseInput(char *fileName, int *insert);
+Instructions * parseInput(char *fileName, int *insert, int isExecutable);
 
 #endif

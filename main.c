@@ -1,14 +1,14 @@
-#include<stdint.h>
-#include<stdio.h>
-#include<string.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 
-#include"machine.h"
-#include"parser.h"
-#include"writer.h"
-#include"loader.h"
-#include"cycle.h"
-#include"analyzer.h"
+#include "machine.h"
+#include "parser.h"
+#include "writer.h"
+#include "loader.h"
+#include "cycle.h"
+#include "analyzer.h"
 /* Help */
 /*======*/
 
@@ -36,12 +36,9 @@ void help() {
 
 int main(int argc, char **argv) {
     Machine *m = getMachine();
-    Instructions *ins = NULL;
-    char *inputFilename = NULL, *outputFilename = NULL, *executableName = NULL;
-    int r = 1;
-    int h = 0;
-    int a = 0;
-    int check = 1;
+    Instructions *ins = NULL, *libIns = NULL;
+    char *inputFilename = NULL, *outputFilename = NULL, *executableName = NULL, *libraries = NULL;
+    int r = 1, h = 0, a = 0, check = 1, module = 0, link = 0;
     if (argc > 1) {
         int i = 1;
         for (i = 1; i < argc; i++) {
@@ -58,6 +55,14 @@ int main(int argc, char **argv) {
             else if (strcmp(argv[i], "-a") == 0 || strcmp(argv[i], "--help") == 0){
                 a = 1;
                 executableName = argv[++i];
+            }
+            else if (strcmp(argv[i], "-m") == 0 || strcmp(argv[i], "--module") == 0){
+                module = 1;
+                r = 0;
+            }
+            else if (strcmp(argv[i], "-l") == 0 || strcmp(argv[i], "--link") == 0){
+                link = 1;
+                libraries = argv[++i];
             }
         }
         if (h) {
@@ -83,6 +88,10 @@ int main(int argc, char **argv) {
             help();
             return 0;
         }
+        else if(module && r){
+            printf("\n[ERROR] A library cannot be run directly!\n");
+            return 1;
+        }
 
         if (executableName) {
             ins = loadBinary(executableName, &check);
@@ -90,26 +99,40 @@ int main(int argc, char **argv) {
                 if(a)
                     analyze(ins);
                 else{
-                    writeInstructions(m, ins);
-                    run(m);
+                    if(link){
+                        libIns = loadLibraries(libraries, &check);
+                    }
+                    if(check){
+                        writeInstructions(m, libIns);
+                        writeInstructions(m, ins);
+                        run(m);
+                    }
                 }
             }
         } else if (inputFilename || outputFilename) {
-            ins = parseInput(inputFilename, &check);
+            ins = parseInput(inputFilename, &check, !module);
+            if(link){
+                libIns = loadLibraries(libraries, &check);
+            }
             if(check){
+                writeInstructions(m, libIns);
                 writeInstructions(m, ins);
                 if ((ins->noi > 0) & r){
                     run(m);
                 }
                 if ((ins->noi > 0) & (outputFilename != NULL)) {
                     //finalizeInstructions(m, ins);
-                    writeBinary(ins, outputFilename);
+                    writeBinary(ins, outputFilename, !module);
                 }
             }
         }
     } else {
-        ins = parseInput(NULL, &check);
+        ins = parseInput(NULL, &check, !module);
+        if(link){
+            libIns = loadLibraries(libraries, &check);
+        }
         if (check){
+            writeInstructions(m, libIns);
             writeInstructions(m, ins);
             run(m);
         }
@@ -117,6 +140,7 @@ int main(int argc, char **argv) {
 
     destroyMachine(m);
     freeInstructions(ins);
+    freeInstructions(libIns);
 
     return 0;
 }

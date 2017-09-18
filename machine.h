@@ -58,4 +58,6 @@ Machine *getMachine();
 void finalizeInstructions(Machine *m, Instructions *ins);
 
 void destroyMachine(Machine *m);
+
+int symtLookup(Machine *m, char *symbol);
 #endif

@@ -24,4 +24,6 @@ typedef struct{
 } Instructions;
 
 void freeInstructions(Instructions *ins);
+void concatInstructions(Instructions *dest, Instructions *source);
+
 #endif

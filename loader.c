@@ -1,8 +1,9 @@
-#include"loader.h"
-#include"binfmt.h"
-#include"names.h"
-#include<stdio.h>
-#include<malloc.h>
+#include "loader.h"
+#include "binfmt.h"
+#include "names.h"
+#include "utility.h"
+#include <stdio.h>
+#include <malloc.h>
 
 static char * readString(FILE *fp){
     uint8_t len = 0;
@@ -49,10 +50,14 @@ Instructions * loadBinary(char *filename, int *check) {
     fread(&(h.magic), sizeof(uint32_t), 1, fp);
     fread(&(h.version), sizeof(uint8_t), 1, fp);
     fread(&(h.numIns), sizeof(uint16_t), 1, fp);
+    fread(&(h.isExecutable), sizeof(uint8_t), 1, fp);
     if (h.magic == MAGIC) {
-        printf("\n[LOADER] Magic matched");
+        if(h.isExecutable)
+            printf("\n[LOADER] Magic matched");
         if (h.version == VERSION) {
-            printf("\n[LOADER] Version matched\n[LOADER] Instructions : %u", h.numIns);
+            
+            if(h.isExecutable)
+                printf("\n[LOADER] Version matched\n[LOADER] Instructions : %u", h.numIns);
 
             uint16_t i = 0;
             inss->noi = h.numIns;
@@ -71,11 +76,15 @@ Instructions * loadBinary(char *filename, int *check) {
             Footer f;
             fread(&f, sizeof(Footer), 1, fp);
             //printf("\n[LOADER] Expected file size : %lu", f.expectedSize);
-            printf("\n[LOADER] Instruction length : %u bytes", f.instructionLength);
+            if(h.isExecutable)
+                printf("\n[LOADER] Instruction length : %u bytes", f.instructionLength);
+            
             if (f.instructionLength != sizeof(Instruction)) {
                 printf("\n[LOADER:WARNING] Instruction length mismatch! The binary may be corrupted!");
             }
-            printf("\n[LOADER] Binary format : %s\n", binaryFormat[f.format - 0x40]);
+
+            if(h.isExecutable)
+                printf("\n[LOADER] Binary format : %s\n\n", binaryFormat[f.format - 0x40]);
             fclose(fp);
             return inss;
         } else {
@@ -83,9 +92,27 @@ Instructions * loadBinary(char *filename, int *check) {
             *check = 0;
         }
     } else {
-        printf("\n[ERROR] Magic not matched! This is not a valid executable file!");
+        printf("\n[ERROR] Magic not matched! This is not a valid binary file!");
         *check = 0;
     }
     fclose(fp);
     return NULL;
+}
+
+Instructions * loadLibraries(char *libraries, int *check){
+    char **libFiles = NULL;
+    size_t nums = splitIntoArray(libraries, &libFiles, ',');
+    int i = 0;
+    Instructions *ret = NULL;
+    while(i < nums && *check){
+        Instructions *lib = loadBinary(libFiles[i], check);
+        if(*check){
+            if(ret == NULL)
+                ret = lib;
+            else
+                concatInstructions(ret, lib);
+        }
+        i++;
+    }
+    return ret;
 }

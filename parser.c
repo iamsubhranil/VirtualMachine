@@ -13,7 +13,7 @@ static Instruction *newInstruction() {
     return (Instruction *) malloc(sizeof(Instruction));
 }
 
-Instructions * parseInput(char *filename, int *check) {
+Instructions * parseInput(char *filename, int *check, int isExecutable) {
     FILE *fp = stdin;
     if (filename) {
         fp = fopen(filename, "rb");
@@ -49,7 +49,10 @@ Instructions * parseInput(char *filename, int *check) {
             continue;
         token = strtok(buff, " ");
         if(token==NULL){
-            token = strdup("halt");
+            if(!isExecutable)
+                break;
+            else
+                token = strdup("halt");
         }
         newIns->instructions = (Instruction *)realloc(newIns->instructions, ++add*sizeof(Instruction));
         Instruction *is = &(newIns->instructions[add-1]);
@@ -141,12 +144,18 @@ Instructions * parseInput(char *filename, int *check) {
             insert = 0;
     }
 
-    if(!maind){
-        printf("\n[PARSER:ERROR] main is not defined!");
-        *check = 0;
+    if(isExecutable){
+        if(!maind){
+            printf("\n[PARSER:ERROR] main is not defined!");
+            *check = 0;
+        }
+        else if(!mainf){
+            printf("\n[PARSER:ERROR] main is not enclosed!");
+            *check = 0;
+        }
     }
-    else if(!mainf){
-        printf("\n[PARSER:ERROR] main is not enclosed!");
+    else if(!isExecutable && maind){
+        printf("\n[PARSER:ERROR] `main` shouldn't be defined on a library!");
         *check = 0;
     }
 

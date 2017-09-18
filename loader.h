@@ -5,4 +5,6 @@
 
 Instructions * loadBinary(char *fileName, int *check);
 
+Instructions * loadLibraries(char *libraries, int *check);
+
 #endif

@@ -4,6 +4,8 @@
 
 #include"machine.h"
 
+static uint16_t pointer = 0;
+
 void writeData(Machine *m, uint16_t add, uint32_t val) {
 	m->memory[add].acquired = 1;
 	m->memory[add].type = DATA;
@@ -16,13 +18,16 @@ static void writeInstruction(Machine *m, uint16_t add, Instruction ins) {
 	m->memory[add].type = INSTRUCTION;
 	m->memory[add].data.instruction = ins;
 	m->occupiedAddress++;
+    pointer++;
 }
 
 void writeInstructions(Machine *m, Instructions *ins){
-	uint16_t length = ins->noi;
-	uint16_t i = 0;
+	if(ins == NULL)
+        return;
+    uint16_t length = ins->noi;
+    int i = 0;
 	while(i<length){
-		writeInstruction(m, i, ins->instructions[i]);
+		writeInstruction(m, pointer, ins->instructions[i]);
 		i++;
 	}
 }
@@ -138,4 +143,15 @@ void destroyMachine(Machine *m){
 		free(back);
 	}
 	free(m);	
+}
+
+int symtLookup(Machine *m, char *symbol){
+    SymbolTable *top = m->symbolTable;
+    while(top!=NULL){
+        SymbolTable *now = top;
+        if(strcmp(now->symbolName, symbol) == 0)
+            return 1;
+        top = top->next;
+    }
+    return 0;
 }

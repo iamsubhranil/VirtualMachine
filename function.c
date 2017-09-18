@@ -318,6 +318,11 @@ void def(Machine *m, Operand * op){
 void call(Machine *m, Operand * op){
     char *args = op[1].data.ims;
     char *fName = op[0].data.name;
+    if(!symtLookup(m, getstr(strdup("__start__def__"), strdup(fName)))){
+        printf("\n[ERROR] %s is not defined!", fName);
+        m->halt = 1;
+        return;
+    }
     //printf("\n[Call] Fname is %s!", fName);
     char **arglist = NULL;
     size_t length = splitIntoArray(args, &arglist, ',');

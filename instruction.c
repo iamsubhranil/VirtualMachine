@@ -1,5 +1,6 @@
-#include<stdlib.h>
-#include"instruction.h"
+#include <stdlib.h>
+#include "instruction.h"
+#include <stdio.h>
 
 static void freeOperand(Operand *op, int length){
     int i = 0;
@@ -25,4 +26,15 @@ void freeInstructions(Instructions *ins){
     }
     free(ins->instructions);
     free(ins);
+}
+
+void concatInstructions(Instructions *dest, Instructions *source){
+    uint16_t totalIns = dest->noi + source->noi, i = 0;
+    //printf("\nPrevious : %u New : %u Total : %u Calc size : %lu\n", dest->noi, source->noi, totalIns, sizeof(dest->instructions)/sizeof(dest->instructions[0]));
+    dest->instructions = (Instruction *)realloc(dest->instructions, totalIns * sizeof(Instruction));
+    while(dest->noi < totalIns){
+        dest->instructions[dest->noi] = source->instructions[i];
+        dest->noi++;
+        i++;
+    }
 }
