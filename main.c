@@ -92,6 +92,10 @@ int main(int argc, char **argv) {
             printf("\n[ERROR] A library cannot be run directly!\n");
             return 1;
         }
+        else if(link && executableName){
+            printf("\n[ERROR] Wrong use of '--link'! See '--help'.\n");
+            return 1;
+        }
 
         if (executableName) {
             ins = loadBinary(executableName, &check);
@@ -99,11 +103,7 @@ int main(int argc, char **argv) {
                 if(a)
                     analyze(ins);
                 else{
-                    if(link){
-                        libIns = loadLibraries(libraries, &check);
-                    }
                     if(check){
-                        writeInstructions(m, libIns);
                         writeInstructions(m, ins);
                         run(m);
                     }
@@ -122,7 +122,7 @@ int main(int argc, char **argv) {
                 }
                 if ((ins->noi > 0) & (outputFilename != NULL)) {
                     //finalizeInstructions(m, ins);
-                    writeBinary(ins, outputFilename, !module);
+                    writeBinary(ins, outputFilename, !module, libraries);
                 }
             }
         }

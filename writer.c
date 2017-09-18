@@ -3,22 +3,13 @@
 #include <string.h>
 #include <stdio.h>
 
-static void writeHeader(FILE *fp, uint16_t length, uint8_t isExecutable) {
-    Header header = {MAGIC, VERSION, length, isExecutable};
-    fwrite(&(header.magic), sizeof(uint32_t), 1, fp);
-    fwrite(&(header.version), sizeof(uint8_t), 1, fp);
-    fwrite(&(header.numIns), sizeof(uint16_t), 1, fp);
-    fwrite(&(header.isExecutable), sizeof(uint8_t), 1, fp);
-}
-
-static void writeFooter(FILE *fp) {
-    Footer footer = {OPTIMISED, sizeof(Instruction) & 0xFF};
-    fwrite(&footer, sizeof(Footer), 1, fp);
-}
-
 static void writeString(char *string, FILE *fp){
     //printf("\n[Writer] Writing string %s!", string);
-    uint8_t ln = strlen(string) + 1;
+    uint8_t ln;
+    if(string == NULL)
+        ln = 0;
+    else
+        ln = strlen(string) + 1;
     fwrite(&ln, sizeof(uint8_t), 1, fp);
     int i = 0;
     while(i < ln){
@@ -26,6 +17,20 @@ static void writeString(char *string, FILE *fp){
         fwrite(&c, sizeof(char), 1, fp);
         i++;
     }
+}
+
+static void writeHeader(FILE *fp, uint16_t length, uint8_t isExecutable, char *libraries) {
+    Header header = {MAGIC, VERSION, length, isExecutable, libraries};
+    fwrite(&(header.magic), sizeof(uint32_t), 1, fp);
+    fwrite(&(header.version), sizeof(uint8_t), 1, fp);
+    fwrite(&(header.numIns), sizeof(uint16_t), 1, fp);
+    fwrite(&(header.isExecutable), sizeof(uint8_t), 1, fp);
+    writeString(libraries, fp);
+}
+
+static void writeFooter(FILE *fp) {
+    Footer footer = {OPTIMISED, sizeof(Instruction) & 0xFF};
+    fwrite(&footer, sizeof(Footer), 1, fp);
 }
 
 static void writeOperand(Operand op, FILE *fp) {
@@ -62,7 +67,7 @@ static void writeOperands(Instruction i, FILE *fp) {
     }
 }
 
-void writeBinary(Instructions *ins, char *filename, uint8_t isExecutable) {
+void writeBinary(Instructions *ins, char *filename, uint8_t isExecutable, char *libraries) {
     FILE *fp = fopen(filename, "wb");
     if (!fp) {
         printf("\n[ERROR] Unable to open file %s!", filename);
@@ -70,7 +75,7 @@ void writeBinary(Instructions *ins, char *filename, uint8_t isExecutable) {
     }
     uint16_t i = 0;
     uint16_t length = ins->noi;
-    writeHeader(fp, length, isExecutable);
+    writeHeader(fp, length, isExecutable, libraries);
     //printf("\nOpcode\tFormat\tAddressingMode1\tValue1\tAddressingMode2\tValue2\tAddressingMode3\tValue3");
     //printf("\n======\t======\t===============\t======\t===============\t======\t===============\t======");
     while (i < length) {

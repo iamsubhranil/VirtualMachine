@@ -8,6 +8,8 @@
 static char * readString(FILE *fp){
     uint8_t len = 0;
     fread(&len, sizeof(uint8_t), 1, fp);
+    if(len == 0)
+        return NULL;
     char *buffer = malloc(sizeof(char)*len);
     int i = 0;
     while(i<len){
@@ -51,6 +53,7 @@ Instructions * loadBinary(char *filename, int *check) {
     fread(&(h.version), sizeof(uint8_t), 1, fp);
     fread(&(h.numIns), sizeof(uint16_t), 1, fp);
     fread(&(h.isExecutable), sizeof(uint8_t), 1, fp);
+    h.libraries = readString(fp);
     if (h.magic == MAGIC) {
         if(h.isExecutable)
             printf("\n[LOADER] Magic matched");
@@ -85,10 +88,17 @@ Instructions * loadBinary(char *filename, int *check) {
 
             if(h.isExecutable)
                 printf("\n[LOADER] Binary format : %s\n\n", binaryFormat[f.format - 0x40]);
+            if(h.libraries){
+                Instructions *libIns = loadLibraries(h.libraries, check);
+                if(*check){
+                    concatInstructions(libIns, inss);
+                    inss = libIns;
+                }
+            }
             fclose(fp);
             return inss;
         } else {
-            printf("\n[ERROR] Binary version incompatible!");
+            printf("\n[ERROR] Unable to load %s : Binary version incompatible!", filename);
             *check = 0;
         }
     } else {

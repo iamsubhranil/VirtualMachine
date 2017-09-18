@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #define MAGIC 0x564D4558 // VMEX
-#define VERSION 12
+#define VERSION 13
 
 /* Binary header and footer */
 
@@ -13,6 +13,7 @@ typedef struct {
     uint8_t version;
     uint16_t numIns;
     uint8_t isExecutable;
+    char *libraries;
 } Header;
 
 /* Binary Format */
