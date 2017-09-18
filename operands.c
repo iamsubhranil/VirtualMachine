@@ -15,12 +15,12 @@ static int checkVariableName(char *val) {
     return 1;
 }
 
-void getOperand(Operand *op, char *val, int *insert) {
+Operand * getOperand(Operand *op, int opnum, char *val, int *insert) {
     if (!*insert)
-        return;
+        return op;
     if(val == NULL){
-        op->mode = 0;
-        return;
+        op[opnum].mode = 0;
+        return op;
     }
 
     uint8_t addressingMode = 0;
@@ -37,38 +37,41 @@ void getOperand(Operand *op, char *val, int *insert) {
     else {
         printf("\n[PARSER:ERROR] Unknown addressing mode for operand %s!", val);
         *insert = 0;
-        return;
+        return op;
     }
     val = stripFirst(val);
     char *rem;
     switch (addressingMode) {
         case VARIABLE:
-            if (checkVariableName(val))
-                op->data.name = strdup(val);
+            if (checkVariableName(val)){
+               // op[opnum].data.name = malloc(sizeof(char) * strlen(val));
+                op[opnum].data.name = strdup(val);
+            }
             else {
                 printf("\n[PARSER:ERROR] Bad variable name %s!", val);
                 *insert = 0;
             }
             break;
         case DIRECT:
-            op->data.mema = strtoll(val, &rem, 10);
+            op[opnum].data.mema = strtoll(val, &rem, 10);
             if (strlen(rem)) {
                 printf("\n[PARSER:ERROR] Direct addressing contains invalid part : %s", rem);
                 *insert = 0;
             }
             break;
         case IMMEDIATE:
-            op->data.imv = strtoll(val, &rem, 10);
+            op[opnum].data.imv = strtoll(val, &rem, 10);
             if (strlen(rem)) {
                 printf("\n[PARSER:ERROR] Bad immediate value : %s", val);
                 *insert = 0;
             }
             break;
         case IMMEDIATES:
-            op->data.ims = strdup(val);
+           // op[opnum].data.name = malloc(sizeof(char) * strlen(val));
+            op[opnum].data.ims = strdup(val);
             break;
         case REGISTER:
-            op->data.rega = strtoll(val, &rem, 10);
+            op[opnum].data.rega = strtoll(val, &rem, 10);
             if (strlen(rem)) {
                 printf("\n[PARSER:ERROR] Bad register address : %s", val);
                 *insert = 0;
@@ -80,5 +83,6 @@ void getOperand(Operand *op, char *val, int *insert) {
             break;
     }
     free(val);
-    op->mode = addressingMode;
+    op[opnum].mode = addressingMode;
+    return op;
 }

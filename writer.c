@@ -1,7 +1,7 @@
-#include"writer.h"
-#include"binfmt.h"
-#include<string.h>
-#include<stdio.h>
+#include "writer.h"
+#include "binfmt.h"
+#include <string.h>
+#include <stdio.h>
 
 static void writeHeader(FILE *fp, uint16_t length) {
     Header header = {MAGIC, VERSION, length};
@@ -16,6 +16,7 @@ static void writeFooter(FILE *fp) {
 }
 
 static void writeString(char *string, FILE *fp){
+    //printf("\n[Writer] Writing string %s!", string);
     uint8_t ln = strlen(string) + 1;
     fwrite(&ln, sizeof(uint8_t), 1, fp);
     int i = 0;
@@ -53,21 +54,10 @@ static void writeOperand(Operand op, FILE *fp) {
 }
 
 static void writeOperands(Instruction i, FILE *fp) {
-    switch (i.format) {
-        case ZERO_ADDRESS:
-            break;
-        case ONE_ADDRESS:
-            writeOperand(i.operands.onea.op1, fp);
-            break;
-        case TWO_ADDRESS:
-            writeOperand(i.operands.twoa.op1, fp);
-            writeOperand(i.operands.twoa.op2, fp);
-            break;
-        case THREE_ADDRESS:
-            writeOperand(i.operands.threa.op1, fp);
-            writeOperand(i.operands.threa.op2, fp);
-            writeOperand(i.operands.threa.op3, fp);
-            break;
+    int l = i.format - 0x30, j = 0;
+    while(j < l){
+        writeOperand(i.operands[j], fp);
+        j++;
     }
 }
 

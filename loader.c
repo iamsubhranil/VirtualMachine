@@ -60,21 +60,11 @@ Instructions * loadBinary(char *filename, int *check) {
             while (i < h.numIns) {
                 fread(&(inss->instructions[i].opcode), sizeof(uint8_t), 1, fp);
                 fread(&(inss->instructions[i].format), sizeof(uint8_t), 1, fp);
-                switch (inss->instructions[i].format) {
-                    case ZERO_ADDRESS:
-                        break;
-                    case ONE_ADDRESS:
-                        readOperand(&(inss->instructions[i].operands.onea.op1), fp);
-                        break;
-                    case TWO_ADDRESS:
-                        readOperand(&(inss->instructions[i].operands.twoa.op1), fp);
-                        readOperand(&(inss->instructions[i].operands.twoa.op2), fp);
-                        break;
-                    case THREE_ADDRESS:
-                        readOperand(&(inss->instructions[i].operands.threa.op1), fp);
-                        readOperand(&(inss->instructions[i].operands.threa.op2), fp);
-                        readOperand(&(inss->instructions[i].operands.threa.op3), fp);
-                        break;
+                inss->instructions[i].operands = (Operand *)malloc(sizeof(Operand) * (inss->instructions[i].format - 0x30));
+                int l = inss->instructions[i].format - 0x30, j = 0;
+                while(j < l){
+                    readOperand(&(inss->instructions[i].operands[j]), fp);
+                    j++;
                 }
                 i++;
             }

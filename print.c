@@ -20,22 +20,13 @@ void printOperand(Operand o) {
 }
 
 void printIns(Instruction ins) {
-    printf("\n\tInstruction : %s", insNames[ins.opcode - 0x10]);
+    printf("\n\tInstruction : %s", insNames[ins.opcode - 0xA0]);
     printf("\n\t\tFormat : %s", formatNames[ins.format - 0x30]);
-    switch (ins.format) {
-        case ONE_ADDRESS:
-            printf("\n\t\tOperand 1 :");
-            printOperand(ins.operands.onea.op1);
-            break;
-        case TWO_ADDRESS:
-            printf("\n\t\tOperand 1 :");
-            printOperand(ins.operands.twoa.op1);
-            printf("\n\t\tOperand 2 : ");
-            printOperand(ins.operands.twoa.op2);
-            break;
-        default:
-            printf("\n\t\tNo operands!");
-            break;
+    int l = ins.format - 0x30, i = 0;
+    while(i < l){
+        printf("\n\tOperand %d : ", (i + 1));
+        printOperand(ins.operands[i]);
+        i++;
     }
 }
 

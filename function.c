@@ -1,7 +1,7 @@
-#include"function.h"
-#include"utility.h"
-#include<stdio.h>
-#include<stdlib.h>
+#include "function.h"
+#include "utility.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 static int32_t getVal(Operand o, Machine *m) {
     Data d1 = o.data;
@@ -37,39 +37,38 @@ static void putVal(Operand o, Machine *m, int32_t val){
     }
 }
 
-void incr(Machine *m, Operands op) {
-    int32_t val = getVal(op.onea.op1, m);
-    putVal(op.onea.op1, m, val+1);
+void incr(Machine *m, Operand * op) {
+    int32_t val = getVal(op[0], m);
+    putVal(op[0], m, val+1);
 }
 
-void decr(Machine *m, Operands op) {
-    int32_t val = getVal(op.onea.op1, m);
-    putVal(op.onea.op1, m, val - 1); 
+void decr(Machine *m, Operand * op) {
+    int32_t val = getVal(op[0], m);
+    putVal(op[0], m, val - 1); 
 }
 
-void let(Machine *m, Operands op) {
-    int32_t val = getVal(op.twoa.op1, m);
-    Operand op2 = op.twoa.op2;
+void let(Machine *m, Operand * op) {
+    int32_t val = getVal(op[0], m);
+    Operand op2 = op[1];
     putVal(op2, m, val);
 }
 
-void load(Machine *m, Operands op) {
-    Operand op1 = op.twoa.op1;
-    putVal(op.twoa.op2, m, getVal(op1, m));
+void load(Machine *m, Operand * op) {
+    Operand op1 = op[0];
+    putVal(op[1], m, getVal(op1, m));
 }
 
-void store(Machine *m, Operands op) {
-    Operand op2 = op.twoa.op2;
-    putVal(op2, m, m->registers[op.twoa.op1.data.rega]);
+void store(Machine *m, Operand * op) {
+    Operand op2 = op[1];
+    putVal(op2, m, m->registers[op[0].data.rega]);
 }
 
-void halt(Machine *m, Operands op) {
-    op.zeroa.dummy = 'a'; // Stop the warning
+void halt(Machine *m, Operand * op) {
     m->halt = 1;
 }
 
-void unlet(Machine *m, Operands op) {
-    Operand op1 = op.onea.op1;
+void unlet(Machine *m, Operand * op) {
+    Operand op1 = op[0];
     Data d1 = op1.data;
     switch (op1.mode) {
         case IMMEDIATE:
@@ -85,42 +84,42 @@ void unlet(Machine *m, Operands op) {
     }
 }
 
-void add(Machine *m, Operands op) {
-    Operand op1 = op.threa.op1;
-    Operand op2 = op.threa.op2;
+void add(Machine *m, Operand * op) {
+    Operand op1 = op[0];
+    Operand op2 = op[1];
     int32_t readval1 = getVal(op1, m), readval2 = getVal(op2, m);
-    putVal(op.threa.op3, m, readval1 + readval2);
+    putVal(op[2], m, readval1 + readval2);
 }
 
-void sub(Machine *m, Operands op) {
-    Operand op1 = op.threa.op1;
-    Operand op2 = op.threa.op2;
+void sub(Machine *m, Operand * op) {
+    Operand op1 = op[0];
+    Operand op2 = op[1];
     int32_t readval1 = getVal(op1, m), readval2 = getVal(op2, m); 
-    putVal(op.threa.op3, m, readval1 - readval2);
+    putVal(op[2], m, readval1 - readval2);
 }
 
-void mul(Machine *m, Operands op) {
-    Operand op1 = op.threa.op1;
-    Operand op2 = op.threa.op2;
+void mul(Machine *m, Operand * op) {
+    Operand op1 = op[0];
+    Operand op2 = op[1];
     int32_t readval1 = getVal(op1, m), readval2 = getVal(op2, m);
-    putVal(op.threa.op3, m, readval1 * readval2);
+    putVal(op[2], m, readval1 * readval2);
 }
 
-void divd(Machine *m, Operands op) {
-    Operand op1 = op.threa.op1;
-    Operand op2 = op.threa.op2;
+void divd(Machine *m, Operand * op) {
+    Operand op1 = op[0];
+    Operand op2 = op[1];
     int32_t readval1 = getVal(op1, m), readval2 = getVal(op2, m);
-    putVal(op.threa.op3, m, readval1 / readval2);
+    putVal(op[2], m, readval1 / readval2);
 }
 
-void setl(Machine *m, Operands op) {
-    Operand op1 = op.onea.op1;
+void setl(Machine *m, Operand * op) {
+    Operand op1 = op[0];
     switch (op1.mode) {
         case DIRECT:
             writeData(m, op1.data.mema, m->pc + 1);
             break;
         case VARIABLE: {
-            //               printf("\nSetting label %s to %u", op1.data.name, m->pc+1);
+            //printf("\n[Setl] Setting label %s to %u", op1.data.name, m->pc+1);
             uint16_t ad = getAddress(m, op1.data.name);
             writeData(m, ad, m->pc + 1);
         }
@@ -144,40 +143,40 @@ static uint16_t jmpAddress(Machine *m, Operand label) {
     return address;
 }
 
-void jne(Machine *m, Operands op) {
-    uint16_t address = jmpAddress(m, op.threa.op1);
-    Operand source = op.threa.op2;
-    Operand dest = op.threa.op3;
+void jne(Machine *m, Operand * op) {
+    uint16_t address = jmpAddress(m, op[0]);
+    Operand source = op[1];
+    Operand dest = op[2];
     if (getVal(source, m) != getVal(dest, m) && address!=0)
         m->pc = address;
 }
 
-void jlt(Machine *m, Operands op) {
-    uint16_t address = jmpAddress(m, op.threa.op1);
-    Operand source = op.threa.op2;
-    Operand dest = op.threa.op3;
+void jlt(Machine *m, Operand * op) {
+    uint16_t address = jmpAddress(m, op[0]);
+    Operand source = op[1];
+    Operand dest = op[2];
     if (getVal(source, m) < getVal(dest, m) && address!=0)
         m->pc = address;
 }
 
-void jgt(Machine *m, Operands op) {
-    uint16_t address = jmpAddress(m, op.threa.op1);
-    Operand source = op.threa.op2;
-    Operand dest = op.threa.op3;
+void jgt(Machine *m, Operand * op) {
+    uint16_t address = jmpAddress(m, op[0]);
+    Operand source = op[1];
+    Operand dest = op[2];
     if (getVal(source, m) > getVal(dest, m) && address!=0)
         m->pc = address;
 }
 
-void jmp(Machine *m, Operands op) {
-    uint16_t address = jmpAddress(m, op.threa.op1);
+void jmp(Machine *m, Operand * op) {
+    uint16_t address = jmpAddress(m, op[0]);
     if (address!=0)
         m->pc = address;
 }
 
-void jeq(Machine *m, Operands op) {
-    uint16_t address = jmpAddress(m, op.threa.op1);
-    Operand source = op.threa.op2;
-    Operand dest = op.threa.op3;
+void jeq(Machine *m, Operand * op) {
+    uint16_t address = jmpAddress(m, op[0]);
+    Operand source = op[1];
+    Operand dest = op[2];
     if (getVal(source, m) == getVal(dest, m) && address!=0)
         m->pc = address;
 }
@@ -211,17 +210,17 @@ static char *formatString(char *input){
     return buffer;
 }
 
-void print(Machine *m, Operands op) {
-    Data printData = op.twoa.op1.data;
+void print(Machine *m, Operand * op) {
+    Data printData = op[0].data;
     char *printString = formatString(printData.ims);
-    char *args = op.twoa.op2.data.ims;
+    char *args = op[1].data.ims;
     char **arguments = NULL;
     size_t noa = 0, i = 0;
     noa = splitIntoArray(args, &arguments, ',');
     Operand *operands = (Operand *)malloc(sizeof(Operand)*noa);
     int check = 1;
     while(i < noa){
-        getOperand(&operands[i], arguments[i], &check);
+        operands = getOperand(operands, i, arguments[i], &check);
         if(!check){
             free(operands);
             printf("\n[ERROR] Print failed!");
@@ -255,12 +254,12 @@ void print(Machine *m, Operands op) {
     free(operands);
 }
 
-void inpti(Machine *m, Operands op){
-    char *prompt = formatString(op.twoa.op1.data.ims);
+void inpti(Machine *m, Operand * op){
+    char *prompt = formatString(op[0].data.ims);
     int32_t input;
     printf("%s", prompt);
     scanf("%d", &input);
-    Operand dest = op.twoa.op2;
+    Operand dest = op[1];
     if(dest.mode == REGISTER)
         m->registers[dest.data.rega] = input;
     else if(dest.mode == DIRECT)
@@ -269,83 +268,103 @@ void inpti(Machine *m, Operands op){
         writeData(m, getAddress(m, dest.data.name), input);
 }
 
-void inpts(Machine *m, Operands op){
+void inpts(Machine *m, Operand * op){
     printf("\n[INPTS:ERROR] inpts is not defined yet!");
 }
 
-void prntl(Machine *m, Operands op){
+void prntl(Machine *m, Operand * op){
     print(m, op);
     printf("\n");
 }
 
-void prompt(Machine *m, Operands op){
-    char *prompt = formatString(op.onea.op1.data.ims);
+void prompt(Machine *m, Operand * op){
+    char *prompt = formatString(op[0].data.ims);
     printf("%s", prompt);
 }
 
-void prmptl(Machine *m, Operands op){
+void prmptl(Machine *m, Operand * op){
     prompt(m, op);
     printf("\n");
 }
 
-void mod(Machine *m, Operands op){
-    int32_t val1 = getVal(op.threa.op1, m), val2 = getVal(op.threa.op2, m);
-    putVal(op.threa.op3, m, val1 % val2);
+void mod(Machine *m, Operand * op){
+    int32_t val1 = getVal(op[0], m), val2 = getVal(op[1], m);
+    putVal(op[2], m, val1 % val2);
 }
 
-void def(Machine *m, Operands op){
-    char *fName = op.onea.op1.data.name;
-    Operands *label = (Operands *)malloc(sizeof(Operands));
-    label->onea.op1.mode = VARIABLE;
-    label->onea.op1.data.name = strcat(strdup("__start__def__"), strdup(fName));
-    setl(m, *label);
+char * getstr(char *p, char *q){
+    size_t size1 = strlen(p);
+    size_t size2 = strlen(q);
+   
+    char *ret = (char *)malloc(size1 + size2 + 1);
+    strcpy(ret, p);
+    strcat(ret, q);
+    free(p);
+    free(q);
+    return ret;
+}
+
+void def(Machine *m, Operand * op){
+    char *fName = op[0].data.name;
+    Operand *label = (Operand *)malloc(sizeof(Operand));
+    label->mode = VARIABLE;
+    label->data.name = getstr(strdup("__start__def__"), strdup(fName));
+    //printf("\n[Def] Defined as [%s] Original [%s]!", label->data.name, op[0].data.name);
+    setl(m, label);
+    //free(label->data.name);
     free(label);
 }
 
-void call(Machine *m, Operands op){
-    char *args = op.threa.op2.data.ims;
+void call(Machine *m, Operand * op){
+    char *args = op[1].data.ims;
+    char *fName = op[0].data.name;
+    //printf("\n[Call] Fname is %s!", fName);
     char **arglist = NULL;
     size_t length = splitIntoArray(args, &arglist, ',');
     size_t i = 0;
     int insert = 1;
-    Operands ops;
-    ops.onea.op1.mode = VARIABLE;
-    ops.onea.op1.data.name = strcat(strdup("__end__def__"),strdup(op.onea.op1.data.name));
+    Operand * ops = (Operand *)malloc(sizeof(Operand) * 2);
+    ops[0].mode = VARIABLE;
+    ops[0].data.name = getstr(strdup("__end__def__"), strdup(fName));
     setl(m, ops);
+    //free(ops->data.name);
     while(i < length){
-        Operand op;
-        getOperand(&op, arglist[i], &insert);
+        ops = getOperand(ops, 0, arglist[i], &insert);
         if(!insert){
             printf("[ERROR] Bad argument %s!", arglist[i]);
             i++;
             continue;
         }
-        else if(op.mode == IMMEDIATES){
+        else if(ops->mode == IMMEDIATES){
             printf("[ERROR] Unable to pass immediate string [%s] as argument!", arglist[i]);
             i++;
             continue;
         }
-        int32_t val = getVal(op, m);
-        ops.twoa.op1.mode = IMMEDIATE;
-        ops.twoa.op1.data.imv = val;
-        ops.twoa.op2.mode = VARIABLE;
+        int32_t val = getVal(*ops, m);
+        ops[0].mode = IMMEDIATE;
+        ops[0].data.imv = val;
+        ops[1].mode = VARIABLE;
         char toString[5];
         sprintf(toString, "%d", (int)i);
-        ops.twoa.op2.data.name = strcat(strdup("arg"), toString);
+        ops[1].data.name = getstr(strdup("arg"), strdup(toString));
         let(m, ops);
         i++;
     }
-    op.twoa.op1.data.name = strcat(strdup("__start__def__"), op.twoa.op1.data.name);
-    m->pc = jmpAddress(m, op.twoa.op1);
+    ops[0].mode = VARIABLE;
+    ops[0].data.name = getstr(strdup("__start__def__"), strdup(fName));
+    m->pc = jmpAddress(m, ops[0]);
+    free(ops);
 }
 
-void enddef(Machine *m, Operands op){
-    if(strcmp(op.onea.op1.data.name, "main") == 0)
+void enddef(Machine *m, Operand * op){
+    if(strcmp(op[0].data.name, "main") == 0)
         halt(m, op);
     else{
-        char *fName = strdup(op.onea.op1.data.name);
-        op.onea.op1.mode = VARIABLE;
-        op.onea.op1.data.name = strcat(strdup("__end__def__"), fName);
-        m->pc = jmpAddress(m, op.onea.op1);
+        char *fName = strdup(op[0].data.name);
+        Operand tmp;
+        tmp.mode = VARIABLE;
+        tmp.data.name = getstr(strdup("__end__def__"), fName);
+        //printf("\n[Enddef] Jumping to %s..", tmp.data.name);
+        m->pc = jmpAddress(m, tmp);
     }
 }

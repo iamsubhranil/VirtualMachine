@@ -1,64 +1,64 @@
 #ifndef FUNCTION_H
 #define FUNCTION_H
 
-#include"machine.h"
-#include"operands.h"
+#include "machine.h"
+#include "operands.h"
 
-typedef void (*function)(Machine *m, Operands op);
+typedef void (*function)(Machine *m, Operand * op);
 
-void incr(Machine *m, Operands op);
+void incr(Machine *m, Operand * op);
 
-void decr(Machine *m, Operands op);
+void decr(Machine *m, Operand * op);
 
-void unlet(Machine *m, Operands op);
+void unlet(Machine *m, Operand * op);
 
-void let(Machine *m, Operands op);
+void let(Machine *m, Operand * op);
 
-void store(Machine *m, Operands op);
+void store(Machine *m, Operand * op);
 
-void load(Machine *m, Operands op);
+void load(Machine *m, Operand * op);
 
-void print(Machine *m, Operands op);
+void print(Machine *m, Operand * op);
 
-void halt(Machine *m, Operands op);
+void halt(Machine *m, Operand * op);
 
-void add(Machine *m, Operands op);
+void add(Machine *m, Operand * op);
 
-void sub(Machine *m, Operands op);
+void sub(Machine *m, Operand * op);
 
-void mul(Machine *m, Operands op);
+void mul(Machine *m, Operand * op);
 
-void divd(Machine *m, Operands op);
+void divd(Machine *m, Operand * op);
 
-void setl(Machine *m, Operands op);
+void setl(Machine *m, Operand * op);
 
-void jne(Machine *m, Operands op);
+void jne(Machine *m, Operand * op);
 
-void jlt(Machine *m, Operands op);
+void jlt(Machine *m, Operand * op);
 
-void jgt(Machine *m, Operands op);
+void jgt(Machine *m, Operand * op);
 
-void prntl(Machine *m, Operands op);
+void prntl(Machine *m, Operand * op);
 
-void inpti(Machine *m, Operands op);
+void inpti(Machine *m, Operand * op);
 
-void inpts(Machine *m, Operands op);
+void inpts(Machine *m, Operand * op);
 
-void prompt(Machine *m, Operands op);
+void prompt(Machine *m, Operand * op);
 
-void prmptl(Machine *m, Operands op);
+void prmptl(Machine *m, Operand * op);
 
-void mod(Machine *m, Operands op);
+void mod(Machine *m, Operand * op);
 
-void def(Machine *m, Operands op);
+void def(Machine *m, Operand * op);
 
-void call(Machine *m, Operands op);
+void call(Machine *m, Operand * op);
 
-void enddef(Machine *m, Operands op);
+void enddef(Machine *m, Operand * op);
 
-void jeq(Machine *m, Operands op);
+void jeq(Machine *m, Operand * op);
 
-void jmp(Machine *m, Operands op);
+void jmp(Machine *m, Operand * op);
 
 static function func[] = {incr, decr, unlet, print, load, store, let, halt, add, sub, mul, divd, setl, jne, jlt, jgt, prntl, inpti, inpts,
                             prompt, prmptl, mod, def, call, enddef, jeq, jmp};

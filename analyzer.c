@@ -45,29 +45,15 @@ static void printNull(){
     printf("   --   |   --   |    --    |");
 }
 
-static void printOperands(Operands op, uint8_t insMode){
-    switch(insMode){
-        case THREE_ADDRESS: 
-            printOperand(op.threa.op1);
-            printOperand(op.threa.op2);
-            printOperand(op.threa.op3);
-            break;
-        case TWO_ADDRESS: 
-            printOperand(op.twoa.op1);
-            printOperand(op.twoa.op2);
-            printNull();
-            break;
-        case ONE_ADDRESS: 
-            printOperand(op.onea.op1);
-            printNull();
-            printNull();
-            break;
-        case ZERO_ADDRESS: 
-            printNull();
-            printNull();
-            printNull();
-            break;
-
+static void printOperands(Operand *op, uint8_t insMode){
+    int l = insMode - 0x30, i = 0;
+    while(i < l){
+        printOperand(op[i]);
+        i++;
+    }
+    while(i < 3){
+        printNull();
+        i++;
     }
 }
 
@@ -89,7 +75,7 @@ void analyze(Instructions *ins){
         printf("\n|---------|--------|--------|------|-------|--------|--------|----------|--------|--------|----------|--------|--------|----------|");
         printf("\n|  %5u  |  0x%2x  | %6s | 0x%2x | %5s |"
                 , (i+1), in.opcode, insNames[in.opcode - 0xA0], in.format, formatNames[in.format - 0x30]);
-        Operands op = in.operands;
+        Operand *op = in.operands;
         printOperands(op, in.format);
         i++;
     };

@@ -28,6 +28,7 @@ typedef struct {
     Data data;
 } Operand;
 
+/*
 typedef struct {
     char dummy;
 } ZeroAddress;
@@ -53,8 +54,9 @@ typedef union {
     TwoAddress twoa;
     ThreeAddress threa;
 } Operands;
+*/
 
-void getOperand(Operand *op, char *val, int *insert);
+Operand * getOperand(Operand *op, int opnum, char *val, int *insert);
 
 //void checkOperand(Operand op, uint8_t function, int opnum, int *insert);
 

@@ -90,7 +90,7 @@ void loadFunctions(int *check){
             while(i < numop){
                 //printf("\nOperand %d : ", (i+1));
                 char **basic = NULL, **typeList = NULL;
-                splitIntoArray(temp[2+i], &basic, ':'); // 1:2,3,4 => 1 2,3,4
+                int parts = splitIntoArray(temp[2+i], &basic, ':'); // 1:2,3,4 => 1 2,3,4
                 size_t numList = splitIntoArray(basic[1], &typeList, ','), loop = 0; // 2,3,4 => 2 3 4
                 now->expectedArguments[i] = (uint8_t *)malloc(sizeof(uint8_t)*numList+1);
                 while(numList > loop){
@@ -98,10 +98,30 @@ void loadFunctions(int *check){
                     loop++;
                 }
                 now->expectedArguments[i][loop] = base_mode + 0xf; // Terminator
+                
+                while(parts > 0){
+                    free(basic[parts - 1]);
+                    parts--;
+                }
+                free(basic);
+
+                while(numList > 0){
+                    free(typeList[numList - 1]);
+                    numList--;
+                }
+                free(typeList);
                 //printf("\n");
                 i++;
             }
         }
+
+        while(dummy > 0){
+            free(temp[dummy - 1]);
+            dummy--;
+        }
+        free(temp);
+        free(definition);
+
         if(prev == NULL)
             functions = now;
         else
@@ -111,28 +131,3 @@ void loadFunctions(int *check){
     }
 }
 
-/*
-int main(){
-    int check = 1;
-    //char *line = "mytest of a strong line", **ck = NULL;
-    //splitIntoArray(line, &ck, ' ');
-    loadFunctions(&check);
-    while(functions != NULL){
-        printf("\nFunction : %s", functions->invokation);
-        printf("\n\tFormat : %s", formatNames[functions->format-0x30]);
-        int numop = functions->format - 0x30 ;
-        int i = 0;
-        while(i < numop){
-            printf("\n\t\tExpected modes for operand %d is : ", (i+1));
-            size_t j = 0;
-            while(functions->expectedArguments[i][j] != 0x2f){
-                printf("%s ", modeNames[functions->expectedArguments[i][j] - 0x20]);
-                j++;
-            }
-            i++;
-        }
-        functions = functions->next;
-    }
-    printf("\n");
-}
-*/

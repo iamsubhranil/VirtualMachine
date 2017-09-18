@@ -2,6 +2,7 @@
 #include "opcodes.h"
 #include "function.h"
 #include "floader.h"
+#include "print.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -20,7 +21,7 @@ static void execute(Machine *m, Instruction ins) {
 static Instruction decode(Cell cell) {
     switch (cell.type) {
         case DATA: {
-            Instruction halt = {ZERO_ADDRESS, HALT, {.zeroa = {0}}};
+            Instruction halt = {ZERO_ADDRESS, HALT, NULL};
             return halt;
         }
         case INSTRUCTION:
@@ -45,10 +46,11 @@ static void dryRun(Machine *m){
     while(cont){
         m->pc = i;
         Instruction ins = decode(fetch(m));
+        //printIns(ins);
         if(ins.opcode == def->opcode || ins.opcode == setl->opcode)
             execute(m, ins);
         else if(ins.opcode == enddef->opcode){
-            if(strcmp(ins.operands.onea.op1.data.name, "main")==0)
+            if(strcmp(ins.operands[0].data.name, "main")==0)
                 cont = 0;
         }
         else if(ins.opcode == halt->opcode)

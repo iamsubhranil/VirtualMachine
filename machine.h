@@ -11,6 +11,7 @@
 // To keep correspondance between symbol name and memory location
 typedef struct SymT {
     char *symbolName;
+    uint8_t symType; // 0 for undefined, 1 for defined
     uint16_t mema;
     struct SymT *next;
 } SymbolTable;

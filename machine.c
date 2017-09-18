@@ -121,23 +121,11 @@ void finalizeInstructions(Machine *m, Instructions *ins){
 	uint16_t i = 0;
 	while(i<ins->noi){
 		Instruction *in = &ins->instructions[i];
-		switch (in->format) {
-			case ZERO_ADDRESS:
-				break;
-			case ONE_ADDRESS:
-				convertVariableToDirect(m, &in->operands.onea.op1);
-				break;
-			case TWO_ADDRESS:
-				convertVariableToDirect(m, &in->operands.twoa.op1);
-				convertVariableToDirect(m, &in->operands.twoa.op2);
-				break;
-			case THREE_ADDRESS:
-				convertVariableToDirect(m, &in->operands.threa.op1);
-				convertVariableToDirect(m, &in->operands.threa.op2);
-				convertVariableToDirect(m, &in->operands.threa.op3);
-				break;
-		}
-		i++;
+        int l = in->format - 0x30, j = 0;
+        while(j < l){
+            convertVariableToDirect(m, &in->operands[j]);
+            j++;
+        }
 	}
 }
 
@@ -146,7 +134,7 @@ void destroyMachine(Machine *m){
 	while(top!=NULL){
 		SymbolTable *back = top;
 		top = top->next;
-		free(back->symbolName);
+		//free(back->symbolName);
 		free(back);
 	}
 	free(m);	

@@ -1,13 +1,13 @@
-#include"opcodes.h"
-#include"operands.h"
-#include"floader.h"
-#include"instruction.h"
-#include"utility.h"
-#include"names.h"
+#include "opcodes.h"
+#include "operands.h"
+#include "floader.h"
+#include "instruction.h"
+#include "utility.h"
+#include "names.h"
+#include "print.h"
+#include "parser.h"
 
-#include"parser.h"
-
-#include<stdlib.h>
+#include <stdlib.h>
 
 static Instruction *newInstruction() {
     return (Instruction *) malloc(sizeof(Instruction));
@@ -53,7 +53,8 @@ Instructions * parseInput(char *filename, int *check) {
         }
         newIns->instructions = (Instruction *)realloc(newIns->instructions, ++add*sizeof(Instruction));
         Instruction *is = &(newIns->instructions[add-1]);
-        Operands *os = &(is->operands);
+        is->operands = NULL;
+        Operand *operands = NULL;
         //printf("\n[INPUT] [%s]",token);
         Function *function = getFunction(token);
         if(function == NULL){
@@ -62,14 +63,16 @@ Instructions * parseInput(char *filename, int *check) {
             continue;
         } 
         is->opcode = function->opcode;
-        //printf("\n[INFO] Function : %s Opcode : 0x%x", function->invokation, function->opcode);
+        //printf("\n[INFO] Function : %s Opcode : 0x%x Format : 0x%x", function->invokation, function->opcode, function->format);
         is->format = function->format;
-
+        operands = (Operand *)malloc(sizeof(Operand) * (is->format - 0x30));
+        //printf("\nAllocated %u bytes for %d operands!\n", sizeof(Operand) * (is->format - 0x30),(is->format - 0x30));
+        int i = 0;
         switch (is->format) {
             case ONE_ADDRESS: {
                                   token = strtok(NULL, " ");
-                                  getOperand(&(os->onea.op1), token, &insert);
-                                  checkOperand(function, &(os->onea.op1), 1, &insert);
+                                  operands = getOperand(operands, 0, token, &insert);
+                                  checkOperand(function, &(operands[0]), 1, &insert);
 
                                   if(insert && is->opcode == def->opcode){
                                       if(defName != NULL){
@@ -106,44 +109,33 @@ Instructions * parseInput(char *filename, int *check) {
                                   break;
                               }
             case TWO_ADDRESS: {
-                                  Operand *op1 = &(os->twoa.op1);
-                                  Operand *op2 = &(os->twoa.op2);
-                                  token = strtok(NULL, " ");
-                                  getOperand(op1, token, &insert);
-                                  checkOperand(function, op1, 1, &insert);
-                                  token = strtok(NULL, " ");
-                                  getOperand(op2, token, &insert);
-                                  checkOperand(function, op2, 2, &insert);
+                                  while(i < 2){
+                                      token = strtok(NULL, " ");
+                                      operands = getOperand(operands, i, token, &insert);
+                                      checkOperand(function, &(operands[i]), (i+1), &insert);
+                                      i++;
+                                  }
                                   *check = insert;
                                   break;
                               }
             case THREE_ADDRESS: {
-                                    Operand *op1 = &(os->threa.op1);
-                                    Operand *op2 = &(os->threa.op2);
-                                    Operand *op3 = &(os->threa.op3);
-
-                                    token = strtok(NULL, " ");
-                                    getOperand(op1, token, &insert);
-                                    checkOperand(function, op1, 1, &insert);
-
-                                    token = strtok(NULL, " ");
-                                    getOperand(op2, token, &insert);
-                                    checkOperand(function, op2, 2, &insert);
-
-                                    token = strtok(NULL, " ");
-                                    getOperand(op3, token, &insert);
-                                    checkOperand(function, op3, 3, &insert);
-
+                                    while(i < 3){
+                                        token = strtok(NULL, " ");
+                                        operands = getOperand(operands, i, token, &insert);
+                                        checkOperand(function, &(operands[i]), (i+1), &insert);
+                                        i++;
+                                    }
                                     *check = insert;
                                     break;
                                 }
-            case ZERO_ADDRESS: { 
-                                   os->zeroa.dummy = '0';
+            case ZERO_ADDRESS: {
                                    break;
                                }
         }
         lastins = is->opcode;
+        is->operands = operands;
         free(buff);
+        //printIns(*is);
         //printMem(m, add);
         if (is->opcode == HALT)
             insert = 0;
