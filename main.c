@@ -18,16 +18,19 @@ void help() {
             --output \t-o\tSpecify output executable\n \
             --norun  \t-n\tCompile and save, but do not run the source file (Must be used with --output)\n \
             --run    \t-r\tRun a compiled executable\n \
+            --link   \t-l\tLink a precompiled library\n \
+            --module \t-m\tCompile the source as a library\n \
             --analyze\t-a\tAnalyze a precompiled executable\n \
             --help   \t-h\tShow help\n \
             Usage :\n \
-            \t1. machine [--input|-i] sourcefile\n \
+            \t1. machine [--input|-i] sourcefile [--link|-l] library_file\n \
             \t2. machine [--input|-i] sourcefile [--output|-o] executable\n \
-            \t3. machine [--input|-i] sourcefile [--output|-o] executable [--norun|-n]\n \
-            \t4. machine [--run|-r] executable\n \
-            \t5. machine [--output|-o] executable\n \
-            \t6. machine [--output|-o] executable [--norun|-n]\n \
-            \t7. machine [--analyze|-a] executable\n \
+            \t3. machine [--input|-i] sourcefile [--output|-o] library_file [--module|-m]\n \
+            \t4. machine [--input|-i] sourcefile [--output|-o] executable [--norun|-n]\n \
+            \t5. machine [--run|-r] executable\n \
+            \t6. machine [--output|-o] executable\n \
+            \t7. machine [--output|-o] executable [--norun|-n]\n \
+            \t8. machine [--analyze|-a] executable\n \
             \n");
 }
 
