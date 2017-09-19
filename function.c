@@ -1,7 +1,11 @@
 #include "function.h"
 #include "utility.h"
+#include "stack.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+
+static CallStack *stack = NULL;
 
 static int32_t getVal(Operand o, Machine *m) {
     Data d1 = o.data;
@@ -329,9 +333,13 @@ void call(Machine *m, Operand * op){
     size_t i = 0;
     int insert = 1;
     Operand * ops = (Operand *)malloc(sizeof(Operand) * 2);
-    ops[0].mode = VARIABLE;
-    ops[0].data.name = getstr(strdup("__end__def__"), strdup(fName));
-    setl(m, ops);
+    
+    if(stack == NULL)
+        stack = cstack_new();
+    cstack_push(stack, m->pc + 1);
+    //ops[0].mode = VARIABLE;
+    //ops[0].data.name = getstr(strdup("__end__def__"), strdup(fName));
+    //setl(m, ops);
     //free(ops->data.name);
     while(i < length){
         ops = getOperand(ops, 0, arglist[i], &insert);
@@ -365,11 +373,11 @@ void enddef(Machine *m, Operand * op){
     if(strcmp(op[0].data.name, "main") == 0)
         halt(m, op);
     else{
-        char *fName = strdup(op[0].data.name);
-        Operand tmp;
-        tmp.mode = VARIABLE;
-        tmp.data.name = getstr(strdup("__end__def__"), fName);
+        //char *fName = strdup(op[0].data.name);
+        //Operand tmp;
+        //tmp.mode = VARIABLE;
+        //tmp.data.name = getstr(strdup("__end__def__"), fName);
         //printf("\n[Enddef] Jumping to %s..", tmp.data.name);
-        m->pc = jmpAddress(m, tmp);
+        m->pc = cstack_pop(stack);
     }
 }

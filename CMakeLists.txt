@@ -14,4 +14,5 @@ add_executable(machine main.c
         print.c
         analyzer.c
         floader.c
-        operands.c)
+        operands.c
+        stack.c)
